@@ -932,7 +932,7 @@ def get_valid_continuous_baseline_intervals_session(behavioral_events,
     # So that this will also work on scalp data since they have inconsistent fields...
     trial_field = 'trial' if 'trial' in behavioral_events.dtype.names else 'list'
 
-    behavioral_events = remove_practice_events(behavioral_events)
+    behavioral_events = remove_practice_events(events=behavioral_events)
     trials = np.unique(behavioral_events[trial_field])
 
     # Create an array of ones of shape n_trials X recall_period (in ms)
@@ -943,9 +943,9 @@ def get_valid_continuous_baseline_intervals_session(behavioral_events,
     for index, trial in enumerate(trials):
 
         # Get the events of the trial
-        trial_events = iterate_events_by_trial(behavioral_events, trial)
+        trial_events = iterate_events_by_trial(session_events=behavioral_events, trial=trial)
         # Get recall period start and stop points
-        starts, stops = return_recall_starts_stops(trial_events)
+        starts, stops = return_recall_starts_stops(events=trial_events)
         # If we don't have any recall periods then we will invalide the whole thing
         if ((starts.shape[0] == 0) & (stops.shape[0] == 0)):
             print('No recall period detected, trial: ', trial)
@@ -953,26 +953,30 @@ def get_valid_continuous_baseline_intervals_session(behavioral_events,
             continue
 
         # Recalls or vocalizations
-        possible_recalls = inside_recall_period(trial_events, starts, stops)
-        invalid_points = return_asrange(possible_recalls['rectime'],
-                                        remove_before_recall,
-                                        remove_after_recall)
+        possible_recalls = inside_recall_period(trial_events=trial_events,
+                                                start_events=starts,
+                                                stop_events=stops)
+        invalid_points = return_asrange(arr=possible_recalls['rectime'],
+                                        timebefore=remove_before_recall,
+                                        timeafter=remove_after_recall)
         # Get rid of any trials where we can't find any invalid points.
         if invalid_points is None:
             baseline_arr[index] = invalid
             continue
 
         # Check the points are within the boundaries of the recall period
-        invalid_points = within_boundaries(invalid_points)
+        invalid_points = within_boundaries(arr=invalid_points,
+                                           recall_period_start=0,
+                                           recall_period_end=recall_period)
         invalid_points = (np.unique(invalid_points),)  # ((),) similiar to np.where
 
         # Removes initial recall contamination (-remove_before_recall,+remove_after_recall)
         baseline_arr[index][invalid_points] = invalid
 
         # Remove any valid baselines that are too small (less than desired_bl_duration)
-        remove_small, too_small_locs = remove_too_small(baseline_arr,
-                                                        index,
-                                                        desired_bl_duration)
+        remove_small, too_small_locs = remove_too_small(baseline_arr=baseline_arr,
+                                                        trial=index,
+                                                        desired_duration=desired_bl_duration)
         if remove_small:
             baseline_arr[index][too_small_locs] = invalid
 
@@ -994,7 +998,9 @@ def get_perfect_matches_in_lists(recalls, baseline_arr, trials, recall_eeg_start
                     relative to recall onset
     Returns
     -------
-    perfectly_matched: "perfect" matches, rows are identical to recalls array, columns are valid trials
+    perfectly_matched: "perfect" matches, rows are identical to recalls array, columns are valid trials (rows in
+                        baseline_arr)
+
     """
 
     # Check if user made it negative or positive
@@ -1038,9 +1044,6 @@ def perfect_match_accumulator(ordered_recalls, baseline_array, trials, recall_ee
     baseline_array: np.array, array of ones and zeros for the baseline created using
                     get_valid_continuous_baseline_intervals_session. Selected matches are invalid
     """
-    # __develop_mode = True for building/debugging
-    __develop_mode = False
-
     # Check if user made it negative or positive
     if np.sign(recall_eeg_start) == -1:
         recall_eeg_start *= -1
@@ -1070,16 +1073,8 @@ def perfect_match_accumulator(ordered_recalls, baseline_array, trials, recall_ee
         if index in matches:
             matches[index].append((trials[random_selection], start, stop))
 
-        if __develop_mode:
-            print('before modifying {} {} {}'.format(random_selection, start, stop))
-            print(baseline_array[random_selection, start:stop])
-
         # Void the selection so other recalls cannot think it is valid
         baseline_array[random_selection, start:stop] = 0.
-
-        if __develop_mode:
-            print('after modifying {} {} {}'.format(random_selection, start, stop))
-            print(baseline_array[random_selection, start:stop])
 
     return matches, baseline_array
 
@@ -1112,8 +1107,6 @@ def within_tolerance_match_accumulator(ordered_recalls, baseline_array, trials, 
     baseline_array: np.array, array of ones and zeros for the baseline created using
                     get_valid_continuous_baseline_intervals_session. Selected matches are invalid
     """
-    # __develop_mode = True for building/debugging
-    __develop_mode = False
 
     if np.sign(recall_eeg_start) == -1:
         recall_eeg_start *= -1
@@ -1160,16 +1153,8 @@ def within_tolerance_match_accumulator(ordered_recalls, baseline_array, trials, 
                 if index in matches:
                     matches[index].append((trials[random_selection], start_slice, end_slice))
 
-                if __develop_mode:
-                    print('before modifying {} {} {}'.format(random_selection, start_slice, end_slice))
-                    print(baseline_array[random_selection, start_slice:end_slice])
-
                 # Void the selection so other recalls cannot think it is valid
                 baseline_array[random_selection, start_slice:end_slice] = 0.
-
-                if __develop_mode:
-                    print('after modifying {} {} {}'.format(random_selection, start_slice, end_slice))
-                    print(baseline_array[random_selection, start_slice:end_slice])
 
             before_start_within_tol += 1
 
