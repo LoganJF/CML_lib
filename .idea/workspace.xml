@@ -2,14 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9e7e864d-e709-42f8-852f-20c2dab52567" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/DemoNotebooks/Retrieval Event Creation Demo.ipynb" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/Utility/NumpyFunctions.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/BrainPlots/__init__.py" afterPath="$PROJECT_DIR$/BrainPlots/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/GetData.py" afterPath="$PROJECT_DIR$/GetData.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/RetrievalCreationHelper.py" afterPath="$PROJECT_DIR$/RetrievalCreationHelper.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry.py" afterPath="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SpectralAnalysis/RollingAverage.py" afterPath="$PROJECT_DIR$/SpectralAnalysis/RollingAverage.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Stats/Zscore.py" afterPath="$PROJECT_DIR$/Stats/Zscore.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -27,11 +22,21 @@
       <file leaf-file-name="RetrievalCreationHelper.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/RetrievalCreationHelper.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="451">
-              <caret line="1124" column="44" lean-forward="false" selection-start-line="1124" selection-start-column="44" selection-end-line="1124" selection-end-column="44" />
+            <state relative-caret-position="60">
+              <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
               <folding>
                 <element signature="e#1623#1648#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="NumpyFunctions.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Utility/NumpyFunctions.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="60">
+              <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -98,6 +103,7 @@
       <find>kind</find>
       <find>trial_field</find>
       <find>remove_too_small</find>
+      <find>.drop</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -138,6 +144,7 @@
         <option value="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry_depreciated.py" />
         <option value="$PROJECT_DIR$/GetData.py" />
         <option value="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry.py" />
+        <option value="$PROJECT_DIR$/Utility/NumpyFunctions.py" />
         <option value="$PROJECT_DIR$/RetrievalCreationHelper.py" />
       </list>
     </option>
@@ -202,7 +209,7 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="SpectralAnalysis" />
+              <option name="myItemId" value="Utility" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -428,7 +435,14 @@
       <option name="project" value="LOCAL" />
       <updated>1526048063977</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="Changed quite a bit actually.&#10;&#10;RetrievalCreationHelper:&#10;Changed slow while loop into a sliding sum using np.convolve, redid script to make it quite a lot cleaner. Added in a notebook to DemoNotebooks to demo the use cases of the main object and function wrapper of the object&#10;&#10;GetData.py:&#10;Added in json scalp functionality to get_subs&#10;&#10;RollingAverage.py:&#10;Fix bug that only allowed burke parameters to work with sliding mean slow, now it should flexibly work.&#10;&#10;">
+      <created>1526570706538</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1526570706538</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TodoView">
@@ -489,21 +503,14 @@
     <MESSAGE value="Initial upload of CML" />
     <MESSAGE value="Mostly fixing things so they don't use the default parameters of the RAM functions. Also trying to upload a couple example notebooks of some functions I use." />
     <MESSAGE value="Adding init" />
-    <option name="LAST_COMMIT_MESSAGE" value="Adding init" />
+    <MESSAGE value="Changed quite a bit actually.&#10;&#10;RetrievalCreationHelper:&#10;Changed slow while loop into a sliding sum using np.convolve, redid script to make it quite a lot cleaner. Added in a notebook to DemoNotebooks to demo the use cases of the main object and function wrapper of the object&#10;&#10;GetData.py:&#10;Added in json scalp functionality to get_subs&#10;&#10;RollingAverage.py:&#10;Fix bug that only allowed burke parameters to work with sliding mean slow, now it should flexibly work.&#10;&#10;" />
+    <option name="LAST_COMMIT_MESSAGE" value="Changed quite a bit actually.&#10;&#10;RetrievalCreationHelper:&#10;Changed slow while loop into a sliding sum using np.convolve, redid script to make it quite a lot cleaner. Added in a notebook to DemoNotebooks to demo the use cases of the main object and function wrapper of the object&#10;&#10;GetData.py:&#10;Added in json scalp functionality to get_subs&#10;&#10;RollingAverage.py:&#10;Fix bug that only allowed burke parameters to work with sliding mean slow, now it should flexibly work.&#10;&#10;" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/Stats/IndependentTTest.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="90">
-          <caret line="6" column="19" lean-forward="false" selection-start-line="6" selection-start-column="19" selection-end-line="6" selection-end-column="19" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/GetData.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="135">
@@ -874,10 +881,18 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/Utility/NumpyFunctions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="60">
+          <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/RetrievalCreationHelper.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="451">
-          <caret line="1124" column="44" lean-forward="false" selection-start-line="1124" selection-start-column="44" selection-end-line="1124" selection-end-column="44" />
+        <state relative-caret-position="60">
+          <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
           <folding>
             <element signature="e#1623#1648#0" expanded="true" />
           </folding>
