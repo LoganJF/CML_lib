@@ -1,50 +1,59 @@
-"""RetrievalCreationHelper.py, author = LoganF, updated May 2, 2018
+"""RetrievalCreationHelper.py, author = LoganF, updated May 16, 2018
 
 A script used to create retrieval events and their corresponding "deliberation" matches. A deliberation match being
 a point in time in a different list where a subject is actively trying, but failing to recall a word.
-Works using data formatted for the Kahana Computational Memory Lab.
-The code has been built for functionality with all RAM data, scalp ltpFR2, and pyFR. However, the author
-only tested out the functionality on the RAM and pyFR data.
 
-For help please see docstrings or contact LoganF, for errors please contact LoganF
+Works using data formatted for the Kahana Computational Memory Lab.
+
+The code has been built for functionality with all RAM data, scalp ltpFR2, and pyFR. However, the author
+only tested out the functionality on the FR1, catFR1, ltpFR2, and pyFR data.
+
+For help please see docstrings (function_name? or help(function_name) or contact LoganF
+For errors please contact LoganF
 
 Example usage and import to use:
 
-from RetrievalCreationHelper import create_retrieval_and_matched_deliberation
+from RetrievalCreationHelper import create_matched_events
 
-#------> Example FR1
-events = create_retrieval_and_matched_deliberation(subject='R1111M', experiment='FR1', session=0,
-                                                   rec_inclusion_before = 2000, rec_inclusion_after = 1000,
-                                                   remove_before_recall = 2000, remove_after_recall = 2000,
-                                                   recall_eeg_start = -1250, recall_eeg_end = 250,
-                                                   match_tolerance = 2000)
+#------> Example FR1 usage
+events = create_matched_events(subject='R1111M', experiment='FR1', session=0,
+                               rec_inclusion_before = 2000, rec_inclusion_after = 1000,
+                               remove_before_recall = 2000, remove_after_recall = 2000,
+                               recall_eeg_start = -1250, recall_eeg_end = 250,
+                               match_tolerance = 2000, verbose=True)
 
 #------> Example ltpFR2
-events = create_retrieval_and_matched_deliberation(subject='LTP093', experiment='ltpFR2', session=1,
-                                                   rec_inclusion_before = 3000, rec_inclusion_after = 1000,
-                                                   remove_before_recall = 3000, remove_after_recall = 3000,
-                                                   recall_eeg_start = -1500, recall_eeg_end = 500,
-                                                   match_tolerance = 3000)
+events = create_matched_events(subject='LTP093', experiment='ltpFR2', session=1,
+                               rec_inclusion_before = 3000, rec_inclusion_after = 1000,
+                               remove_before_recall = 3000, remove_after_recall = 3000,
+                               recall_eeg_start = -1500, recall_eeg_end = 500,
+                               match_tolerance = 3000)
 """
-# --------> General Imports
-import sys
+# General imports
+from copy import deepcopy
+from collections import OrderedDict
+from IPython.display import display
+from matplotlib import pyplot as plt
+import seaborn as sns; sns.set(color_codes=True)
+import warnings
+warnings.filterwarnings("ignore")
+
 # Add some dimension to your life, np=arr, pd=labeled arr, xr=labeled N-D arr
 import numpy as np  # I say numpy like 'lumpy', no I don't mean num-pie
-import pandas as pd  # Make it pretty
-from ptsa.data.readers import JsonIndexReader, BaseEventReader
-from copy import deepcopy
-# Check if python 3 or two
-if int(sys.version[0]) == 3:
-    xrange = range
-    print('Why_are_you_using_python3.jpeg')
+import pandas as pd  # For Undergrads that say "But matlab makes it so much easier to view things"
 
+# Pizza ptsa stuff
+from ptsa.data.readers import BaseEventReader, JsonIndexReader
 
-# ------------> Relevant import, main function, the bee's knees, what people should use etc.
-def create_retrieval_and_matched_deliberation(subject, experiment, session,
-                                              rec_inclusion_before=2000, rec_inclusion_after=1000,
-                                              remove_before_recall=2000, remove_after_recall=2000,
-                                              recall_eeg_start=-1250, recall_eeg_end=250,
-                                              match_tolerance=2000, verbose=False):
+# Stats
+from scipy.stats import ks_2samp
+
+# ----------> Main function to import
+def create_matched_events(subject, experiment, session,
+                          rec_inclusion_before, rec_inclusion_after,
+                          recall_eeg_start, recall_eeg_end, match_tolerance,
+                          remove_before_recall, remove_after_recall,
+                          desired_duration=None, verbose=False, goodness_fit_check=False):
     """Creates behavioral events for recall and matched-in-time deliberation points
 
     Parameters
@@ -63,29 +72,38 @@ def create_retrieval_and_matched_deliberation(subject, experiment, session,
     :session:
         int, session to analyze
     :rec_inclusion_before:
-        int, by default 2000, time in ms before each recall that must be free
+        int,  time in ms before each recall that must be free
         from other events (vocalizations, recalls, stimuli, etc.) to count
         as a valid recall
     :rec_inclusion_after:
-        int, by default 1000, time in ms after each recall that must be free
+        int, time in ms after each recall that must be free
         from other events (vocalizations, recalls, stimuli, etc.) to count
         as a valid recall
     :remove_before_recall:
-        int, by default 2000, time in ms to remove before a recall/vocalization
+        int, time in ms to remove before a recall/vocalization
         used to know when a point is "valid" for a baseline
     :remove_after_recall:
-        int, by default 2000, time in ms to remove after a recall/vocalization
+        int, time in ms to remove after a recall/vocalization
         used to know when a point is "valid" for a baseline
     :recall_eeg_start:
-        int, default = -1250, time in ms of eeg that we would start at
+        int, time in ms of eeg that we would start at
         relative to recall onset, note the sign (e.g. -1500 vs 1500) does not matter
     :recall_eeg_end:
-        int, default = 500, time in ms of eeg that we would stop at relative to recall onset
+        int, time in ms of eeg that we would stop at relative to recall onset
     :match_tolerance:
-        int, by default = 2000, time in ms that a deliberation may deviate from the
+        int, time in ms that a deliberation may deviate from the
         retrieval of an item and still count as a match.
+    :desired_duration:
+        ###FOR NOW DO NOT USE THIS PARAMETER!!!! TODO: ADD IN FULL FUNCTIONALITY###
+        int, default = None, time in ms of eeg that we would like the deliberation
+        period to last for. If None, the code assumes the desired duration is calculated
+        using recall_eeg_start and recall_eeg_end
     :verbose:
-        bool, by default False, whether or not to print out the steps of the code along the way
+        bool, by default False, whether or not to print out the steps of the code along the way, additionally if set to
+        true then the code will output a report on the goodness of fit for the created events
+    :goodness_fit_check:
+        bool, by default False, whether or not to display information regarding the goodness of
+        fit of the code
 
     Returns
     ----------
@@ -93,147 +111,52 @@ def create_retrieval_and_matched_deliberation(subject, experiment, session,
         np.recarray, array of behavioral events corresponding to included recalls with matches
         and their corresponding matches
 
+    Example Usage
+    ---------
+
+    #------> Example FR1 usage
+    events = create_matched_events(subject='R1111M', experiment='FR1', session=0,
+                                   rec_inclusion_before = 2000, rec_inclusion_after = 1000,
+                                   remove_before_recall = 2000, remove_after_recall = 2000,
+                                   recall_eeg_start = -1250, recall_eeg_end = 250,
+                                   match_tolerance = 2000, verbose=True)
+
+    #------> Example ltpFR2
+    events = create_matched_events(subject='LTP093', experiment='ltpFR2', session=1,
+                                   rec_inclusion_before = 3000, rec_inclusion_after = 1000,
+                                   remove_before_recall = 3000, remove_after_recall = 3000,
+                                   recall_eeg_start = -1500, recall_eeg_end = 500,
+                                   match_tolerance = 3000, goodness_fit_check=True)
+
     Notes
     -------
-    Code will do a perfect match first, afterwards will do a "tolerated" match. Any recalls that
-    are not matched are dropped
+    Code will do a exact match in time first, afterwards will do a "tolerated" match. Any recalls that
+    are not matched are dropped. If there are multiple possibles matches (either exact or tolerated) for a
+    recall then the code will select the match that is closest in trial number to the recall.
     """
-    # Create an instance surrounding the subject's retrieval events
-    self = RetrievalEventCreator(subject=subject, experiment=experiment, session=int(session),
-                                 inclusion_time_before=rec_inclusion_before,
-                                 inclusion_time_after=rec_inclusion_after,
-                                 verbose=verbose)
-    # Initialize the relevant parameters/attributes
-    self.initialize_recall_events()
+    subject_instance = DeliberationEventCreator(subject=subject,
+                                                experiment=experiment,
+                                                session=session,
+                                                rec_inclusion_before=rec_inclusion_before,
+                                                rec_inclusion_after=rec_inclusion_after,
+                                                recall_eeg_start=recall_eeg_start,
+                                                recall_eeg_end=recall_eeg_end,
+                                                match_tolerance=match_tolerance,
+                                                remove_before_recall=remove_before_recall,
+                                                remove_after_recall=remove_after_recall,
+                                                desired_duration=None,  # UNTIL IMPLEMENTED SET AS NONE!
+                                                verbose=verbose)
 
-    # Inform user of the number of "included" vs total recalls
-    print('\nStarting match event creation for {}'.format(self.subject))
-    num_evs = len(self.events[(self.events['type'] == 'REC_WORD') & (self.events['intrusion'] == 0)])
-    num_incl = len(self.included_recalls)
-    print('\n{}/{} recalls included\n'.format(num_incl, num_evs))
-
-    # Create an array of valid deliberation points
-    baseline_array = get_valid_continuous_baseline_intervals_session(behavioral_events=self.events,
-                                                                     recall_period=self.rectime,
-                                                                     desired_bl_duration=(
-                                                                     recall_eeg_end - recall_eeg_start),
-                                                                     remove_before_recall=remove_before_recall,
-                                                                     remove_after_recall=remove_after_recall)
-
-    # Match each recall exactly in time
-    perfect_matches = get_perfect_matches_in_lists(recalls=self.included_recalls,
-                                                   baseline_arr=baseline_array,
-                                                   trials=self.trials,
-                                                   recall_eeg_start=recall_eeg_start,
-                                                   recall_eeg_end=recall_eeg_end)
-
-    # Sort the recalls by ordering them from most to least
-    sorted_order = sort_recalls_by_num_matches(matches=perfect_matches)
-    ordered_recalls = np.array([self.included_recalls[i] for i in sorted_order['rec_index'].index]).view(np.recarray)
-
-    # Iterate through the ordered recalls and select exact matches, removing them from the baseline array
-    matches, baseline_array = perfect_match_accumulator(ordered_recalls=ordered_recalls,
-                                                        baseline_array=baseline_array,
-                                                        trials=self.trials,
-                                                        recall_eeg_start=recall_eeg_start,
-                                                        recall_eeg_end=recall_eeg_end)
-
-    # Inform the user of the number of included recalls that were perfectly matched
-    number_matched = sum([1 for k, v in enumerate(matches) if matches[v] != []])
-    percentage_exact_matched = 100 * (float(number_matched) / len(matches))
-    print('\n{}% of recalls were exactly matched\n'.format(percentage_exact_matched))
-
-    # Iterate through the ordered recalls and select tolerated matches, removing them from the baseline array
-    matches, baseline_array = within_tolerance_match_accumulator(ordered_recalls=ordered_recalls,
-                                                                 baseline_array=baseline_array,
-                                                                 trials=self.trials,
-                                                                 matches=matches,
-                                                                 match_tolerance=match_tolerance,
-                                                                 recall_eeg_start=recall_eeg_start,
-                                                                 recall_eeg_end=recall_eeg_end)
-
-    # Inform the user of the number of included recalls that were matched
-    number_matched = sum([1 for k, v in enumerate(matches) if matches[v] != []])
-    percentage_matched = 100 * (float(number_matched) / len(matches))
-    print('\n{}% of recalls were matched\n'.format(percentage_matched))
-
-    # Finally, use the information above to create a np.recarray containing included recalls and matched deliberations
-    matched_events = create_matched_recarray(matches=matches,
-                                             ordered_recalls=ordered_recalls,
-                                             subject_instance=self,
-                                             recall_eeg_start=-1250)
-
+    matched_events = subject_instance.create_matched_recarray()
+    if goodness_fit_check:
+        subject_instance.display_goodness_of_matching_info(plot_retrieval_period=True)
     return matched_events
 
 
-# -------> UTILITY OBJECTS FOR INFORMING USER OF ERRORS
-class BaseException(Exception):
-    """Base Exception Object for handling"""
-
-    def __init__(self, *args):
-        self.args = args
-        self._set_error_message()
-
-    def _set_error_message(self):
-        self.message = self.args[0] if self.args else None
-
-
-class FieldAlreadyExistsException(BaseException):
-    """Utility for handling excepts of appending fields"""
-
-    def __init__(self, msg):
-        self.msg = msg
-        warning = '{}\nSo, the field is already in the array, returning inputted array'
-        super(FieldAlreadyExistsException, self).__init__('ValueError: {}'.format(msg))
-        print(warning.format(self.message))
-
-
-# -------> UTILITY FUNCTIONS FOR BEHAVIORAL EVENT MANIPULATIONS
-def append_fields(old_array, list_of_tuples_field_type):
-    """Return a new array that is like "old_array", but has additional fields.
-
-    The contents of "old_array" are copied over to the appropriate fields in
-    the new array, whereas the new fields are uninitialized.  The
-    arguments are not modified.
-
-    *This is necessary to do use than using the np.lib.recfunction.append_fields
-    function b/c the json loaded events use a dictionary for stim_params in the events*
-    -----
-    INPUTS
-    old_array: a structured numpy array, the behavioral events from ptsa
-    list_of_tuples_field_type: a numpy type description of the new fields
-    -----
-    OUTPUTS
-    new_array: a structured numpy array, a copy of old_array with the new fields
-    ------
-    EXAMPLE USE
-    >>> events = BaseEventReader(filename = logans_file_path).read()
-    >>> events = append_field_workaround(events, [('inclusion', '<i8'), ('foobar', float)])
-    >>> sa = np.array([(1, 'Foo'), (2, 'Bar')], \
-                         dtype=[('id', int), ('name', 'S3')])
-    >>> sa.dtype.descr == np.dtype([('id', int), ('name', 'S3')])
-    True
-    """
-    if old_array.dtype.fields is None:
-        raise ValueError("'old_array' must be a structured numpy array")
-    new_dtype = old_array.dtype.descr + list_of_tuples_field_type
-
-    # Try to add the new field to the array, should work if it's not already a field
-    try:
-        new_array = np.empty(old_array.shape, dtype=new_dtype).view(np.recarray)
-        for name in old_array.dtype.names:
-            new_array[name] = old_array[name]
-        return new_array
-    # If user accidentally tried to add a field already there, then return the old array
-    except ValueError as e:
-        print(sys.exc_info()[0])
-        error = FieldAlreadyExistsException(e)
-        return old_array
-
-
-# -------> Object to create retrieval events, crux of the functions below it.
+# -------> Create an object to handle returning consistent event structures under the hood
 class RetrievalEventCreator(object):
-    """An object used to create recall behavioral events
+    """An object used to create recall behavioral events that are formatted in a consistent way regardless of the CML
+    experiment.
 
     PARAMETERS
     -------
@@ -259,7 +182,6 @@ class RetrievalEventCreator(object):
             int, by default 250, time in ms after each recall that must be free
             from other events (vocalizations, recalls, stimuli, etc.) to count
             as a valid recall
-
         :verbose:
             bool, by default False, whether or not to print out steps along the way
 
@@ -269,8 +191,9 @@ class RetrievalEventCreator(object):
     old_ieeg_data = RetrievalEventCreator(subject='BW022', experiment='pyFR',
                                  session=2, inclusion_time_before=1500,
                                 inclusion_time_after=500, verbose=True)
-    # Set all the attributes of the object.
+    # Set all the attributes of the object, which can then be used.
     old_ieeg_data.initialize_recall_events()
+
 
     self = RetrievalEventCreator(subject='R1111M', experiment='FR1', session=2,
                                  inclusion_time_before=1500, inclusion_time_after=500,
@@ -282,7 +205,7 @@ class RetrievalEventCreator(object):
 
     # -----> Initialize the instance
     def __init__(self, subject, experiment, session,
-                 inclusion_time_before=1500, inclusion_time_after=250,
+                 inclusion_time_before, inclusion_time_after,
                  verbose=False):
 
         # Initialize passed arguments
@@ -319,14 +242,17 @@ class RetrievalEventCreator(object):
         # ----------> Check the formatting of the events to ensure that they have correct info
         has_recall_start_events = self.check_events_for_recall_starts(self.events)
         if not has_recall_start_events:
+            print('Could not find REC_START events, creating REC_START events')
             self.events = self.create_REC_START_events()
 
         has_recall_end_events = self.check_events_for_recall_ends(self.events)
         if not has_recall_end_events:
+            if self.verbose:
+                print('Could not find REC_END events, creating REC_END events')
             self.events = self.create_REC_END_events(events=self.events,
                                                      time_of_the_recall_period=self.rectime)
             if self.verbose:
-                print('Warning, Only set valid mstime for REC_END events...')
+                print('Warning, Only set valid mstime for REC_END events')
 
         self.set_included_recalls()
         return
@@ -335,7 +261,7 @@ class RetrievalEventCreator(object):
     def set_possible_sessions(self):
         """sets the values of all possible session values (array) to attribute possible_sessions
 
-        Returns
+        Sets
         ------
         Attributes self.possible_sessions
         """
@@ -374,7 +300,7 @@ class RetrievalEventCreator(object):
     def set_behavioral_event_path(self):
         """Sets the behavioral events path to attribute event_path
 
-        Creates
+        Sets
         -------
         Attributes event_path
         """
@@ -420,7 +346,7 @@ class RetrievalEventCreator(object):
     def set_events(self):
         """sets all behavioral events to attributes events
 
-        Returns
+        Sets
         -------
         Attributes self.events
         """
@@ -453,7 +379,7 @@ class RetrievalEventCreator(object):
     def set_valid_trials(self):
         """Sets the attribute trials, an array of the unique number of trials for this session
 
-        Returns
+        Sets
         -------
         Attribute self.trials
         """
@@ -467,7 +393,7 @@ class RetrievalEventCreator(object):
     def set_samplerate_params(self):
         """Sets the attribute sample_rate to the instance
 
-        Returns
+        Sets
         ------
         Attribute self.sample_rate
 
@@ -477,7 +403,7 @@ class RetrievalEventCreator(object):
         it assumes a sampling rate of 2048.
         For ieeg subjects it will load the eeg can check manually what the sample_rate is
 
-        This code also will not work on ltpFR1, this functionality needs to be updatd in.
+        This code also will not work on ltpFR1, this functionality needs to be updated in.
         """
         scalp = True if self.experiment in self.jr_scalp.experiments() else False
 
@@ -492,11 +418,11 @@ class RetrievalEventCreator(object):
             if self.events is None:
                 self.set_behavioral_events()
 
-            # eeg = get_sub_eeg(subject=self.subject, experiment=self.experiment, events=self.events[0:1])
-            # self.sample_rate = float(eeg.samplerate.data)
-
-            diff_in_seconds = (self.events['mstime'][4] - self.events['mstime'][3]) / 1000.
-            diff_in_samples = self.events['eegoffset'][4] - self.events['eegoffset'][3]
+            # Use recall's mstime and eegoffset to determine the sample rate
+            # Seriously, use the recall event not an arbitary type event or errors
+            recalls = self.events[self.events['type'] == 'REC_WORD']
+            diff_in_seconds = (recalls['mstime'][4] - recalls['mstime'][3]) / 1000.
+            diff_in_samples = recalls['eegoffset'][4] - recalls['eegoffset'][3]
             # Round is because we want 499.997 etc. to be 500
             self.sample_rate = np.round(diff_in_samples / diff_in_seconds)
 
@@ -511,7 +437,7 @@ class RetrievalEventCreator(object):
         ----------
         events: np.array, by default None and self.events is used, behavioral events of the subject
 
-        Returns
+        Sets
         -------
         Attributes self.recalls
         """
@@ -607,10 +533,10 @@ class RetrievalEventCreator(object):
         ------
         This will only work on events with REC_START fields, also assumes that there's no break taken
         once the recall period starts...
+        Also only correctly sets mstime field everything else is copied from rec_start events
         """
-        from copy import deepcopy
+        # To avoid altering the events make a copy first
         rec_stops = deepcopy(events[events['type'] == 'REC_START'])
-
         # Reset the fields
         rec_stops['type'] = 'REC_END'
         rec_stops['mstime'] += time_of_the_recall_period
@@ -634,8 +560,8 @@ class RetrievalEventCreator(object):
         Notes
         ------
         This will work on behavioral events with REC_START events
+        This part was very quickly remade to further improve pyFR functionality...
         """
-        from copy import deepcopy
         # Set fields that vary from experiment to experiment
         trial_field = 'trial' if 'trial' in self.events.dtype.names else 'list'
         item_field = 'item_name' if 'item_name' in self.events.dtype.names else 'item'
@@ -682,7 +608,7 @@ class RetrievalEventCreator(object):
             try:
                 rec_starts['timebefore'] = 0
                 rec_starts['timeafter'] = 0
-                #rec_starts['recserialpos'] = 0
+                # rec_starts['recserialpos'] = 0
             except:
                 pass
 
@@ -708,521 +634,629 @@ class RetrievalEventCreator(object):
         -------
         behavioral_events: np.array, behavioral events OF ALL SESSIONS
         """
-        """ Utility to get pyFR events
-
-        :param subject: str, subject id
-        :param experiment:
-        :return:
-        """
         event_path = '/data/events/{}/{}_events.mat'.format(experiment, subject)
         base_e_reader = BaseEventReader(filename=event_path, eliminate_events_with_no_eeg=True)
         behavioral_events = base_e_reader.read()
         return behavioral_events
 
+# ------> Create an object to create matched in time periods of deliberation
+class DeliberationEventCreator(RetrievalEventCreator):
+    """An object used to create recall behavioral events that are formatted in a consistent way regardless of the CML
+       experiment.
 
-# ---------> Helper Functions to create deliberation periods!
-def remove_practice_events(events):
-    """ Removes practice events from the events so they are not analyzed
-
-    Parameters
-    ----------
-    events: np.array like; behavioral events of a session
-
-    Returns
-    -------
-    events: np.array like; behavioral events of a session with practice events removed
-    """
-    # Added next line to enable functionality with scalp data
-    trial_field = 'trial' if 'trial' in events.dtype.names else 'list'
-    events = events[events[trial_field] >= 0]
-    return events
-
-
-def return_recall_starts_stops(events):
-    """Splits inputted events into two arrays corresponding to recall starts [0] and recall ends [1]
-
-    Parameters
-    ----------
-    events: np.array like; behavioral events of a session
-
-    Returns
-    -------
-    start, stop: behavioral events representing start and end times for a recall
-    """
-    start = events[events['type'] == 'REC_START']
-    stop = events[events['type'] == 'REC_END']
-    return start, stop
-
-
-def iterate_events_by_trial(session_events, trial):
-    """Returns a copy of inputted session_events with only those in the corresponding inputted trial
-
-    Parameters
-    ----------
-    session_events: np.array like; behavioral events of a session
-    trial: int, the trial REMEMBER THAT TRIALS START AT 1 PYTHON INDEXES AT 0!
-
-    Returns
-    -------
-    trial_evs: np.recarray; behavioral events belonging the inputted trial
-    """
-    # Added next line to enable functionality with scalp data
-    from copy import deepcopy
-    trial_field = 'trial' if 'trial' in session_events.dtype.names else 'list'
-    trial_evs = deepcopy(session_events[session_events[trial_field] == trial])
-    return trial_evs.view(np.recarray)
+       PARAMETERS
+       -------
+       INPUTS:
+           :subject:
+               str; subject id, e.g. 'R1111M'
+           :experiment:
+               str, experiment id, e.g. 'FR1'
+               valid intracranial experiments:
+                   ['FR1', 'FR2', 'FR3', 'FR5', 'FR6', 'PAL1', 'PAL2', 'PAL3', 'PAL5',
+                    'PS1', 'PS2', 'PS2.1', 'PS3', 'PS4_FR', 'PS4_catFR', 'PS5_catFR',
+                    'TH1', 'TH3', 'THR', 'THR1', 'YC1', 'YC2', 'catFR1', 'catFR2',
+                    'catFR3', 'catFR5', 'catFR6', 'pyFR']
+               valid scalp experiments:
+                   ['ltpFR2']
+           :session:
+               int, session to analyze
+           :rec_inclusion_before:
+               int, time in ms before each recall that must be free from other events
+               (vocalizations, recalls, stimuli, etc.) to count as a valid recall
+           :rec_inclusion_after:
+               int, time in ms after each recall that must be free from other events
+               (vocalizations, recalls, stimuli, etc.) to count as a valid recall
+           :recall_eeg_start:
+               int, time in ms prior to each recall's vocalization onset that we want
+               to start looking at the eeg at
+           :match_tolerance:
+               int, time in ms relative to a recall's retrieval period (e.g. from
+               recall_eeg_start up until vocalization onset) that a match is allowed
+               to vary by while still counting as a match
+           :remove_before_recall:
+               int, time in ms to remove before a recall (or vocalization) from being
+               a valid deliberation period
+           :remove_after_recall:
+               int, time in ms to remove after a recall (or vocalization) from being
+               a valid deliberation period
+           ####### TODO: UPDATE #######
+           :desired_duration:
+               int, by default set as None and assumed to be the total eeg length,
+               Not currently implemented besides default setting. Do not use until then
+           ############################
+           :verbose:
+               bool, by default False, whether or not to print out steps along the way,
 
 
-def inside_recall_period(trial_events, start_events, stop_events):
-    """Returns trial_events with time points between the start and end point of recall for a given trial
-
-    Parameters
-    ----------
-    trial_events: np.array like; behavioral events of a trial
-    start_events: np.array like; behavioral event corresponding to trial recall start
-    stop_events: np.array like; behavioral event corresponding to trial recall stop
-
-    Returns
-    -------
-    trial_events with time points between the start and end point of recall for a given trial
-    """
-    return trial_events[(trial_events['mstime'] > start_events['mstime'])
-                        & (trial_events['mstime'] < stop_events['mstime'])]
+               Not true anymore:#if True then the code will also generate a report of the goodness of fit of
+               Not true anymore:#the matching process
 
 
-def within_boundaries(arr, recall_period_start=0, recall_period_end=30000):
-    """Determines whether an inputted arr is within the boundaries of the recall position
-
-    Parameters
-    ----------
-    arr: np.array; arr of values corresponding to indices
-    recall_period_start: int, by default 0; the time in ms where the recall period starts
-    recall_period_end: int, by default 30000; the time in ms where the recall period ends
-
-    Returns
-    -------
-    valid points given the recall boundary
-    """
-    arr = arr[np.where(arr >= recall_period_start)]
-    return arr[np.where(arr < recall_period_end)]
+       EXAMPLE USAGE
+       --------------
+       # ------> Example RAM data
+       subject = DeliberationEventCreator(subject='R1111M', experiment='FR1', session=0,
+                                          rec_inclusion_before = 2000, rec_inclusion_after = 1000,
+                                          remove_before_recall = 2000, remove_after_recall = 2000,
+                                          recall_eeg_start = -1250, recall_eeg_end = 250,
+                                          match_tolerance = 2000, verbose=True)
+       events = subject.create_matched_recarray()
 
 
-def return_asrange(arr, timebefore, timeafter):
-    """Returns data as a range, essentially np.arange by an array of arrays...
+       # -------> Example ltpFR2
+       scalp_sub = DeliberationEventCreator(subject='LTP093', experiment='ltpFR2', session=1,
+                                            rec_inclusion_before = 2000, rec_inclusion_after = 1000,
+                                            remove_before_recall = 3000, remove_after_recall = 3000,
+                                            recall_eeg_start = -1250, recall_eeg_end = 250,
+                                            match_tolerance = 2000, verbose=True)
+       scalp_events = scalp_sub.create_matched_recarray()
+       """
+    def __init__(self, subject, experiment, session,
+                 rec_inclusion_before, rec_inclusion_after,
+                 recall_eeg_start, recall_eeg_end, match_tolerance,
+                 remove_before_recall, remove_after_recall,
+                 desired_duration=None, verbose=False):
+        # Inheritance (Sets all attributes of RetrievalEventCreator)
+        super(DeliberationEventCreator, self).__init__(subject=subject,
+                                                       experiment=experiment,
+                                                       session=session,
+                                                       inclusion_time_before=rec_inclusion_before,
+                                                       inclusion_time_after=rec_inclusion_after,
+                                                       verbose=verbose)
+        # Initialize the relevant RetrievalEventCreator attributes
+        self.initialize_recall_events()
+        # This seems silly to have four attributes refer to two things?
+        self.rec_inclusion_before = rec_inclusion_before
+        self.rec_inclusion_after = rec_inclusion_after
+        # Intialize relevant passed arguments and relevant DeliberationEventCreator attributes
+        # Just to handle everything consistently regardless of user input...
+        if np.sign(recall_eeg_start) == -1:
+            self.recall_eeg_start = -1 * recall_eeg_start
+        else:
+            self.recall_eeg_start = recall_eeg_start
 
-    Parameters
-    ----------
-    arr: np.array, a list of time values
-    time_before: int, the time before the event to include in the range
-    time_after: int, the time after the event to include in the range
+        self.recall_eeg_end = recall_eeg_end
+        self.match_tolerance = match_tolerance
+        self.remove_before_recall = remove_before_recall
+        self.remove_after_recall = remove_after_recall
+        self.desired_duration = desired_duration
+        if self.desired_duration is None:
+            self.desired_duration = np.abs(self.recall_eeg_start) + np.abs(self.recall_eeg_end)
+        self.trial_field = 'trial' if 'trial' in self.events.dtype.names else 'list'
+        # Create attributes we'll set later initially as None
+        self.baseline_array = None
+        self.matches = None
+        self.ordered_recalls = None
+        self.matched_events = None
 
-    Returns
-    -------
-    arrays of np.arange if the code worked, None if it failed
-    """
+    def set_valid_baseline_intervals(self):
+        """Sets to attribute baseline_array an array of 1 and 0 (num_unique_trials x 30000) where 1 is a valid time point
 
-    if len(arr) == 1:
-        return np.arange(arr - timebefore, arr + timeafter)
-    if len(arr) > 1:
-        return np.concatenate([np.arange(x - timebefore, x + timeafter) for x in arr])
-    else:
-        return None
+        Parameters
+        -----------
+        INPUTS EXTRACTED FROM INSTANCE:
+            behavioral_events: np.array, behavioral events of a subject for one session of data.
+            recall_period: int, by default 30000,
+                time in ms of recall period (scalp = 750000, pyFR = 450000, RAM = 300000)
+            desired_bl_duration: int, by default 3000,
+                the desired time in ms we want to match over (e.g. if looking at recall from -2000 to 0, this
+                should be 2000)
+            remove_before_recall: int, by default 1500,
+                time in ms to exclude before each recall/vocalization as invalid
+            remove_after_recall: int, by default 1500,
+                time in ms to exclude after each recall/vocalization as invalid
+        Sets
+        -------
+        Attributes self.baseline_array
+
+        """
+        # Remove any practice events
+        behavioral_events = self.events[self.events[self.trial_field] >= 0]
+        # trials = np.unique(behavioral_events[self.trial_field])
+
+        # Create an array of ones of shape trials X recall_period (in ms)
+        baseline_array = np.ones((self.rectime * len(self.trials))).reshape(len(self.trials), self.rectime)
+        valid, invalid = 1, 0
+
+        # Convert any invalid point in the baseline to zero
+        for index, trial in enumerate(self.trials):
+            # Get the events of the trial
+            trial_events = behavioral_events[behavioral_events[self.trial_field] == trial]
+
+            # Get recall period start and stop points
+            starts = trial_events[trial_events['type'] == 'REC_START']
+            stops = trial_events[trial_events['type'] == 'REC_END']
+
+            # If we don't have any recall periods then we will invalide the whole thing
+            if ((starts.shape[0] == 0) & (stops.shape[0] == 0)):
+                print('No recall period detected, trial: ', trial)
+                baseline_array[index] = invalid
+                continue
+            # --------> Find Recalls or vocalizations
+            possible_recalls = trial_events[
+                (trial_events['type'] == 'REC_WORD') | (trial_events['type'] == 'REC_WORD_VV')]
+
+            # -----> Use Recall rectimes to construct ranges of invalid times before and after them
+            if len(possible_recalls['rectime']) == 1:  # If only one recall in the list
+                invalid_points = np.arange(possible_recalls['rectime'] - self.remove_before_recall,
+                                           possible_recalls['rectime'] + self.remove_after_recall)
+            elif len(possible_recalls['rectime']) > 1:  # If multiple recalls in the list
+                # TODO: Replace with np.apply or broadcasting of some kind?
+                invalid_points = np.concatenate([np.arange(x - self.remove_before_recall, x + self.remove_after_recall)
+                                                 for x in possible_recalls['rectime']])
+            else:  # Get rid of any trials where we can't find any invalid points.
+                baseline_array[index] = invalid
+                continue
+
+            # Ensure the points to be invalidated are within the boundaries of the recall period
+            invalid_points = invalid_points[np.where(invalid_points >= 0)]
+            invalid_points = invalid_points[np.where(invalid_points < self.rectime)]
+            invalid_points = (np.unique(invalid_points),)  # ((),) similiar to np.where output
+
+            # Removes initial recall contamination (-remove_before_recall,+remove_after_recall)
+            baseline_array[index][invalid_points] = invalid
+
+        self.baseline_array = baseline_array
+        return
+
+    def order_recalls_by_num_exact_matches(self):
+        """Orders included_recalls array by least to most number of exact matches to create attribute ordered_recalls
+        Creates
+        -------
+        Attribute ordered_recalls
+
+        Notes
+        ---------
+        ordered_recalls[0] has the least number of matches and ordered_recalls[-1] has the most
+        """
+        # Desired start and stop points of each included recall
+        recs_desired_starts = self.included_recalls['rectime'] - self.recall_eeg_start
+        recs_desired_stops = self.included_recalls['rectime'] + self.recall_eeg_end
+
+        # Store matches here
+        exactly_matched = []
+
+        # Go through each recall, find perfect matches
+        for (start, stop) in zip(recs_desired_starts, recs_desired_stops):
+            has_match_in_trial = np.all(self.baseline_array[:, start:stop] == 1, 1)
+            exactly_matched.append(self.trials[has_match_in_trial])
+
+        # Sort the recalls by ordering events from least to most number of exact matches
+        index_match = np.array([[i, len(x)] for i, x in enumerate(np.array(exactly_matched))])
+        sorted_order = pd.DataFrame(index_match, columns=['rec_index', 'num_matches']).sort_values('num_matches')
+        ordered_recalls = np.array([self.included_recalls[i] for i in sorted_order['rec_index'].index]).view(
+            np.recarray)
+
+        self.ordered_recalls = ordered_recalls
+        return
+
+    def match_accumulator(self):
+        """Accumulates matches between included recalls and baseline array, upon selection of a match invalidates it for other recalls
+
+        Code will first go through each recall (ordered from least to most number of matches)  and try to select an exact match in time
+        in another trial/list. If it cannot, after completeion of all exact matches the code will go through and try to find a tolerated
+        match, that is a period in time that is within the instance's match_tolrance relative to the retrieval phase (eeg_rec_start up
+        until vocalization onset)
+
+        Modifies
+        --------
+        Attribute baseline_array
+
+        Sets
+        ----
+        Attribute matches
+        """
+        if self.baseline_array is None:
+            self.set_valid_baseline_intervals()
+        if self.ordered_recalls is None:
+            self.order_recalls_by_num_exact_matches()
+
+        # This is used to keep track of the trial vs row indexing issues
+        trial_to_row_mapper = dict(zip(self.trials, np.arange(len(self.trials))))
+
+        # Check if user made it negative or positive
+        # if np.sign(self.recall_eeg_start) == -1:
+        # self.recall_eeg_start *= -1
+
+        recs_desired_starts = self.ordered_recalls['rectime'] - self.recall_eeg_start
+        recs_desired_stops = self.ordered_recalls['rectime'] + self.recall_eeg_end
+        ################ EXACT MATCH ACCUMULATION ################
+        # -----> Go through each recall, find perfect matches, if multiple select one closest to trial
+        valid, invalid = 1, 0  # Explicit > implicit
+        matches = OrderedDict()  # Store matches here
+        if self.verbose:
+            print('Starting Exact Matching Procedure...')
+        for index, (start, stop) in enumerate(zip(recs_desired_starts, recs_desired_stops)):
+            if index not in matches:
+                matches[index] = []
+            # Match across all trials from -recall_eeg_start to + recall_eeg_end
+            ## TODO: Add in here to modify an option for putting in a different duration
+            has_match_in_trial = np.all(self.baseline_array[:, start:stop] == valid, 1)
+            trial_matches = self.trials[has_match_in_trial]
+
+            # If there aren't any perfect matches just continue
+            if len(trial_matches) == 0:
+                if self.verbose:
+                    print('Could not perfectly match recall index {}'.format(index))
+                continue
+
+            # Select the match that's closest to the recall's trial
+            recalls_trial_num = self.ordered_recalls[index][self.trial_field]
+            idx_closest_trial = np.abs(trial_matches - recalls_trial_num).argmin()
+            selection = trial_matches[idx_closest_trial]
+
+            if index in matches:
+                matches[index].append((selection, start, stop))
+
+            # Void the selection so other recalls cannot use it as valid
+            self.baseline_array[trial_to_row_mapper[selection], start:stop] = invalid
+
+        ################ TOLERATED MATCH ACCUMULATION ################
+        # -------> Go through each recall, find tolerated matches
+        if self.verbose:
+            print('Starting Tolerated Matching Procedure...')
+        for index, (start, stop) in enumerate(zip(recs_desired_starts, recs_desired_stops)):
+            if matches[index] != []:
+                continue  # Don't redo already matched recalls
+            # Tolerance is defined around recall_eeg_start up until volcalization onset
+            before_start_within_tol = start - self.match_tolerance
+            after_start_within_tol = start + self.match_tolerance + self.recall_eeg_start
+
+            # -----> Sanity check: cannot be before or after recall period
+            if before_start_within_tol < 0:
+                before_start_within_tol = 0
+            if after_start_within_tol > self.baseline_array.shape[-1]:
+                after_start_within_tol = self.baseline_array.shape[-1]
+
+            # ------> Find out where there are valid tolerated points
+            recalls_trial_num = self.ordered_recalls[index][self.trial_field]
+            # Only need to check between tolerated points
+            relevant_bl_times = self.baseline_array[:, before_start_within_tol:after_start_within_tol]
+            # Use convolution of a kernel of ones for the desired duration to figure out where there are valid periods
+            kernel = np.ones(self.desired_duration, dtype=int)
+            sliding_sum = np.apply_along_axis(np.convolve, axis=1, arr=relevant_bl_times,
+                                              v=kernel, mode='valid')
+
+            valid_rows, valid_time_sliding_sum = np.where(sliding_sum == self.desired_duration)
+            # Convert row to trial number through indexing the valid rows
+            valid_trials = self.trials[(np.unique(valid_rows),)]
+            if len(valid_trials) == 0:
+                if self.verbose:
+                    print('Could not match recall index {}'.format(index))
+                continue
+
+            # Find the closest trial
+            idx_closest_trial = np.abs(valid_trials - recalls_trial_num).argmin()
+            # Row in baseline_array vs actually recording the correct trial number
+            selected_row = valid_rows[idx_closest_trial]
+            selected_trial = valid_trials[idx_closest_trial]
+            valid_first_point = valid_time_sliding_sum[0]
+            # Essentially a conversion between convolution window and mstime
+            valid_start = before_start_within_tol + valid_first_point
+            valid_stop = valid_start + self.desired_duration  # b/c sliding mean slides to the right
+            if index in matches:
+                matches[index].append((valid_trials[idx_closest_trial], valid_start, valid_stop))
+                # Void the selection so other recalls cannot use it is valid
+                self.baseline_array[selected_row, valid_start:valid_stop] = invalid
+        self.matches = matches
+
+        return
+
+    def create_matched_recarray(self):
+        """Constructs a recarray of ordered_recalls and their matched deliberation points
+
+        Returns
+        -------
+        behavioral_events: np.recarray, array of included recalls and matched deliberation periods
+        """
+        # if np.sign(self.recall_eeg_start) == -1:
+        # self.recall_eeg_start *= -1
+
+        if self.matched_events is None:
+            self.match_accumulator()
+
+        rec_start = self.events[self.events['type'] == 'REC_START']
+        # rec_end = self.events[self.events['type']=='REC_END']
+        # Non-sense is due to inconsistent fields
+        trial_field = 'trial' if 'trial' in self.ordered_recalls.dtype.names else 'list'
+        item_field = 'item_name' if 'item_name' in self.ordered_recalls.dtype.names else 'item'
+        item_number_field = 'item_num' if 'item_num' in self.ordered_recalls.dtype.names else 'itemno'
+
+        valid_recalls, valid_deliberation = [], []
+        # Use the matches dictionary to construct a recarray
+        for k, v in enumerate(self.matches):
+            if self.matches[v] == []:
+                print('Code could not successfully match recall index {}, dropping recall index {}'.format(k, k))
+                continue
+
+            valid_recalls.append(self.ordered_recalls[k])
+
+            trial, rel_start, rel_stop = self.matches[v][0]  # [0] b/c tuple
+            trial_rec_start_events = rec_start[rec_start[trial_field] == trial]
+
+            bl = deepcopy(self.ordered_recalls[k])
+            bl['type'] = 'REC_BASE'
+            bl[trial_field] = trial
+            bl[item_field] = 'N/A'
+            bl[item_number_field] = -999
+            bl['timebefore'] = -999
+            bl['timeafter'] = -999
+            bl['eegoffset'] = -999
+            # Since we'll want to use EEGReader for both at once the below adjustment should work to allow it to do so
+            # Changed from - to + because of *= -1 at start of code; bl['rectime'] = rel_start - recall_eeg_start
+            bl['rectime'] = rel_start + self.recall_eeg_start
+            bl['mstime'] = trial_rec_start_events['mstime'] + bl['rectime']
+            bl['eegoffset'] = trial_rec_start_events['eegoffset'] + (self.sample_rate * (bl['rectime'] / 1000.))
+            valid_deliberation.append(bl)
+
+        valid_recalls = np.array(valid_recalls).view(np.recarray)
+        valid_deliberation = np.array(valid_deliberation).view(np.recarray)
+
+        behavioral_events = np.concatenate((valid_deliberation, valid_recalls)).view(np.recarray)
+        behavioral_events.sort(order='match')
+        self.matched_events = behavioral_events
+
+        if self.verbose:
+            print('Set attribute matched_events')
+            #self.display_goodness_of_matching_info(plot_retrieval_period=True)
+        return behavioral_events
+
+    def display_goodness_of_matching_info(self, plot_retrieval_period=True):
+        """Function for verifying the output of the code is correct, prints out KS distribution statistics, mean rectime, and an optional plot
+        Parameters
+        ---------
+        plot_retrieval_period:
+            bool, whether or not to plot the data visually as well
+        """
+        if self.verbose:
+            print('\n\n\n\n\n\nDeterming Goodness of Fit...\n\n\n\n\n\n')
+        evs = self.matched_events
+        recalls = evs[evs['type'] == 'REC_WORD']['rectime']
+        deliberations = evs[evs['type'] == 'REC_BASE']['rectime']
+
+        print('Kolmogorov-Smirnov statistic: ', ks_2samp(recalls, deliberations))
+
+        info_mean_time = '\nMean recall time (ms) = {}\nMean deliberation time (ms) = {}\nMean difference in time (ms) = {}'
+        print(info_mean_time.format(recalls.mean(), deliberations.mean(), recalls.mean() - deliberations.mean()))
 
 
-def find_consecutive_data(data, stepsize=1):
-    """Splits Data into a list of arrays where there is more than a single step of 1
+        ############### Preamble to plotting ###############
+        # Here we must format events for plotting
+        all_recalls = self.events[self.events['type'] == 'REC_WORD']
 
-    Parameters
-    ----------
-    data: np.array of zeroes and ones, the data to split
-    step_size: int, by default 1
+        # -------> Vocalizations
+        vocalizations = self.events[self.events['type'] == 'REC_WORD_VV']
+        vocalizations['type'] = 'Vocalization'
 
-    Returns
-    -------
-    list of split data
-    """
-    return np.split(data, np.where(np.diff(data) != stepsize)[0] + 1)
+        # -------> Included recalls successfully matched
+        matched_recs = self.matched_events[self.matched_events['type'] == 'REC_WORD']
+        matched_recs['type'] = 'Successfully Matched Included Recall'
+
+        # -------> Matched deliberation points
+        matched_delib = self.matched_events[self.matched_events['type'] == 'REC_BASE']
+        matched_delib['type'] = 'Successfully Matched Deliberation'
+
+        # Filter out included recalls from all recalls array
+        rec_match_intersection = np.intersect1d(all_recalls['mstime'], matched_recs['mstime'])
+        rec_match_intersection = np.in1d(all_recalls['mstime'], rec_match_intersection)
+        not_matched_idx = np.where(rec_match_intersection == False)
+        not_matched_recs = all_recalls[not_matched_idx]
+
+        # -------> Included recalls unsuccessfully matched
+        failed_to_match_incl_recs = not_matched_recs[(not_matched_recs['timebefore'] > self.rec_inclusion_before)
+                                                     & (not_matched_recs['timeafter'] > self.rec_inclusion_after)
+                                                     & (not_matched_recs['intrusion'] == 0)]
+        failed_to_match_incl_recs['type'] = 'Unsuccessfully Matched Included Recall'
+
+        # -------> Intrusions
+        intrusions = not_matched_recs[not_matched_recs['intrusion'] != 0]  # 0 indicates it is not an intrusion
+        eli = intrusions[intrusions == -999]  # -999 used to indicate extra list intrusions
+        eli['type'] = 'Extra List Intrusion'
+        pli = intrusions[intrusions != -999]  # The number here indicates number of list back the intrusion is from
+        pli['type'] = 'Prior List Intrusion'
+
+        # -------> Excluded Recalls
+        excluded_recs = not_matched_recs[((not_matched_recs['timebefore'] < self.rec_inclusion_before)
+                                          | (not_matched_recs['timeafter'] < self.rec_inclusion_after))
+                                         & (not_matched_recs['intrusion'] == 0)]
+        excluded_recs['type'] = 'Excluded Recall'
+
+        # -------> Combine them all into a single array
+        retrieval_events = deepcopy(matched_recs).view(np.recarray)
+        # This non-sense avoids any ValueErrors from concating empty things
+        for ev_type in [vocalizations, matched_delib, failed_to_match_incl_recs, pli, eli, excluded_recs]:
+            if ev_type.shape[0] == 0:
+                continue
+            retrieval_events = np.append(retrieval_events, ev_type)
+        retrieval_events = retrieval_events.view(np.recarray)
+
+        # If this isn't true there's a problem
+        try:
+            assert (len(retrieval_events) - len(matched_recs) - len(vocalizations)) == len(all_recalls)
+        except:
+            print('(len(retrieval_events) - len(matched_recs) - len(vocalizations)) == len(all_recalls):')
+            print((len(retrieval_events) - len(matched_recs) - len(vocalizations)), len(all_recalls))
+
+        ############# PLOT HIST OF DISTRIBUTION  #############
+        num_incl_recs = len(retrieval_events[(retrieval_events['type'] == 'Unsuccessfully Matched Included Recall')
+                                             | (retrieval_events['type'] == 'Successfully Matched Included Recall')])
+        percentage_matched = float(
+            len(retrieval_events[retrieval_events['type'] == 'Successfully Matched Included Recall']))
+        percentage_matched = (percentage_matched / num_incl_recs) * 100
+        print('1). How many Recalls are excluded due to match failure?\n')
+        print('{}% of {} included recalls were successfully matched'.format(percentage_matched, num_incl_recs))
+        print('\n2). How close does the distribution of Deliberation times match distribution of Recall times?\n')
+        delib_rel_time = pd.DataFrame(matched_delib['rectime'], columns=['Deliberation'])
+        rec_rel_time = pd.DataFrame(matched_recs['rectime'], columns=['Included Recalls'])
+        excluded_recalls = pd.DataFrame(excluded_recs['rectime'], columns=['Excluded Recalls'])
+        df = rec_rel_time.join(delib_rel_time)
+        display(df.T)
+        df = df.join(excluded_recalls)
+        #display(df.T)
+        colors = ["#EC4E20", "#FF9505", "#399AE7"]
+        fig, ax = plt.subplots(figsize=(12,6))
+
+        # .dropna() in case there are uneven amounts of each
+        sns.distplot(df['Included Recalls'].dropna(), rug=True,
+                     label='Included Recalls',ax=ax, color="#EC4E20")
+        sns.distplot(df['Deliberation'].dropna(), rug=True,
+                     label='Deliberations',ax=ax, color="#399AE7")
+        sns.distplot(df['Excluded Recalls'].dropna(), rug=True,
+                     label='Excluded Recalls',ax=ax, color="#FF9505")
+        plt.legend()
+        plt.title('Matched Included Recalls, Deliberation and Excluded Recalls', fontsize=22)
+        ax.set_xlabel('Time Relative to Retrieval Phase (ms)', fontsize=18)
+        ax.set_ylabel('Frequency', fontsize=18)
+        ax.set_xlim(0, self.rectime)
+        plt.tight_layout()
+        plt.show()
+
+        ############### Make a Plot All Retrieval Periods Using The Data Above ###############
+        # -----> Create dictionaries to hold the values for colors/markers used in plot
+        kind_to_color_d = {'Excluded Recall': "#FF9505",#'green',
+                           'Prior List Intrusion': 'purple',
+                           'Extra List Intrusion': 'black',
+                           'Successfully Matched Deliberation': "#399AE7",
+                           'Successfully Matched Included Recall': "#EC4E20",
+                           'Unsuccessfully Matched Included Recall': 'pink',
+                           'Vocalization': 'green'}#'orange'}
+
+        kind_to_marker_d = {'Excluded Recall': 'X',
+                            'Prior List Intrusion': '<',
+                            'Extra List Intrusion': '>',
+                            'Successfully Matched Deliberation': 'o',
+                            'Successfully Matched Included Recall': '*',
+                            'Unsuccessfully Matched Included Recall': 'H',
+                            'Vocalization': 'v'}
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        # -----> Go through each event and make a plot
+        for ev in retrieval_events:
+            ax.scatter(ev['rectime'],
+                       ev[self.trial_field],
+                       color=kind_to_color_d[ev['type']],
+                       marker=kind_to_marker_d[ev['type']],
+                       label=ev['type'])
+
+        # ------> Format x axis
+        plt.xlim(0, self.rectime)
+        ax.set_xticks(ticks=np.arange(0, self.rectime + 1000, 1000))
+        ax.set_xticklabels(labels=np.arange(0, int((self.rectime / 1000.) + 1), 1))
+        plt.xlabel('Time (s)', fontsize=16)
+
+        # -----> Format y axis
+        ax.set_yticks(ticks=self.trials)
+        ax.tick_params(axis='y', colors='black')
+        plt.ylabel('Trial Number', fontsize=16)
+        plt.ylim(np.min(self.trials) - .5, np.max(self.trials) + .5)
+        ticklabels = ax.get_yticklabels()
+        has_recalls_in_trial = np.unique(all_recalls[self.trial_field])
+        for index, label in enumerate(ticklabels):
+            if self.trials[index] not in has_recalls_in_trial:
+                label.set_color('r')  # Make any trial without a recall have a red tick
+
+        # --------> Format rest of the plot
+        plt.grid(True)
+        ax.set_axisbelow(True)  # Make sure it appears behind our plot
+        gridlines = ax.get_xgridlines() + ax.get_ygridlines()
+        for line in gridlines:  # Make the grid a dashed line
+            line.set_linestyle('-.')
+
+        handles, labels = ax.get_legend_handles_labels()
+        handle_list, label_list = [], []
+        for handle, label in zip(handles, labels):
+            if label not in label_list:
+                handle_list.append(handle)
+                label_list.append(label)
+        lgd = ax.legend(handle_list, label_list, loc='upper left', bbox_to_anchor=(1, 1), ncol=1, fancybox=True)
+        title = '{} {} Session {} Matched Retrieval Events'.format(self.subject, self.experiment, self.session)
+        plt.title(title, fontsize=22)
+        plt.show()
 
 
-def sort_recalls_by_num_matches(matches):
-    """ Sorts the recall by the number of matches they have (from least to most)
 
 
-    ##### LOGAN FIX THIS ITS WAY TOO VAUGE, WHICH OBJECT? ######
 
+# -------> UTILITY FUNCTIONS FOR BEHAVIORAL EVENT MANIPULATIONS
+def append_fields(old_array, list_of_tuples_field_type):
+    """Return a new array that is like "old_array", but has additional fields.
 
-    Parameters
-    ----------
-    matches: matches generated using object, maps index of event to lists of possible matches
+    The contents of "old_array" are copied over to the appropriate fields in
+    the new array, whereas the new fields are uninitialized.  The
+    arguments are not modified.
 
-    Returns
-    -------
-    sorted values of recalls ordered from least to most matches
-    """
-    index_match = np.array([[i, len(x)] for i, x in enumerate(np.array(matches))])
-    df = pd.DataFrame(index_match, columns=['rec_index', 'num_matches'])
-    return df.sort_values('num_matches')
-
-
-def remove_too_small(baseline_arr, trial, desired_duration=3000):
-    """Returns sections of baseline_arr that are too small (less than desired duration) or valid baselines
-
-    Parameters
-    ----------
-    baseline_arr: np.array, ones and zeros, shape = (num_unique_trials x 30000)
-    trial: int, the index along the baseline_arr to edit
-    desired_duration: int, by default 3000, time in ms that the duration must be
-
-    Returns
-    -------
-    remove_small: boolean; True if there are locations that are too small and should be removed, else False
-    too_small_locs: tuple or list; tuple locations of where it's valid or empty list if no values are valid
-
-
-    Notes
+    *This is necessary to do use than using the np.lib.recfunction.append_fields
+    function b/c the json loaded events use a dictionary for stim_params in the events*
+    -----
+    INPUTS
+    old_array: a structured numpy array, the behavioral events from ptsa
+    list_of_tuples_field_type: a numpy type description of the new fields
+    -----
+    OUTPUTS
+    new_array: a structured numpy array, a copy of old_array with the new fields
     ------
-    Baseline_arr is an array of 0's and 1's, what this code does is it calculates the difference between
-    elements i and i+1, and if that difference is not zero for a duration of desired_duration then it will remove it
-    because it is too small
-
+    EXAMPLE USE
+    >>> events = BaseEventReader(filename = logans_file_path).read()
+    >>> events = append_field_workaround(events, [('inclusion', '<i8'), ('foobar', float)])
+    >>> sa = np.array([(1, 'Foo'), (2, 'Bar')], \
+                         dtype=[('id', int), ('name', 'S3')])
+    >>> sa.dtype.descr == np.dtype([('id', int), ('name', 'S3')])
+    True
     """
-    valid_points = np.where(baseline_arr[trial] == 1)
-    list_of_consecutive_vp = find_consecutive_data(valid_points[0])
-
-    too_small_locs = [valid_baseline for valid_baseline in list_of_consecutive_vp
-                      if len(valid_baseline) < desired_duration]
-
-    remove_small = False if len(too_small_locs) == 0 else True
-
-    if remove_small:
-        too_small_locs = (np.concatenate(too_small_locs),)
-
-    return remove_small, too_small_locs
-
-
-# ---------> Functions to create deliberation periods!
-def get_valid_continuous_baseline_intervals_session(behavioral_events,
-                                                    recall_period=30000, desired_bl_duration=3000,
-                                                    remove_before_recall=1500, remove_after_recall=1500):
-    """Creates an array of ones and zeros (num_unique_trials x 30000) where one is a valid time point
-
-    Parameters
-    ----------
-    behavioral_events: np.array, behavioral events of a subject for one session of data.
-    recall_period: int, by default 30000,
-        time in ms of recall period (scalp = 750000, pyFR = 450000, RAM = 300000)
-    desired_bl_duration: int, by default 3000,
-        the desired time in ms we want to match over (e.g. if looking at recall from -2000 to 0, this
-        should be 2000)
-    remove_before_recall: int, by default 1500,
-        time in ms to exclude before each recall/vocalization as invalid
-    remove_after_recall: int, by default 1500,
-        time in ms to exclude after each recall/vocalization as invalid
-
-    Returns
-    -------
-    baseline_arr: np.array, an array of ones and zeros where there's a valid time point
-
-    Develeopment notes
-    ---------
-    In the for loop the reasons for using index vs trial is from differences in
-    starting iteration with zero in python vs whatever arbitary trial is in
-    the event structure, and how I choose to format baseline_arr
-    """
-    # So that this will also work on scalp data since they have inconsistent fields...
-    trial_field = 'trial' if 'trial' in behavioral_events.dtype.names else 'list'
-
-    behavioral_events = remove_practice_events(events=behavioral_events)
-    trials = np.unique(behavioral_events[trial_field])
-
-    # Create an array of ones of shape n_trials X recall_period (in ms)
-    baseline_arr = np.ones((recall_period * len(trials))).reshape(len(trials), recall_period)
-    valid, invalid = 1, 0
-
-    # Convert any invalid point in the baseline to zero
-    for index, trial in enumerate(trials):
-
-        # Get the events of the trial
-        trial_events = iterate_events_by_trial(session_events=behavioral_events, trial=trial)
-        # Get recall period start and stop points
-        starts, stops = return_recall_starts_stops(events=trial_events)
-        # If we don't have any recall periods then we will invalide the whole thing
-        if ((starts.shape[0] == 0) & (stops.shape[0] == 0)):
-            print('No recall period detected, trial: ', trial)
-            baseline_arr[index] = invalid
-            continue
-
-        # Recalls or vocalizations
-        possible_recalls = inside_recall_period(trial_events=trial_events,
-                                                start_events=starts,
-                                                stop_events=stops)
-        invalid_points = return_asrange(arr=possible_recalls['rectime'],
-                                        timebefore=remove_before_recall,
-                                        timeafter=remove_after_recall)
-        # Get rid of any trials where we can't find any invalid points.
-        if invalid_points is None:
-            baseline_arr[index] = invalid
-            continue
-
-        # Check the points are within the boundaries of the recall period
-        invalid_points = within_boundaries(arr=invalid_points,
-                                           recall_period_start=0,
-                                           recall_period_end=recall_period)
-        invalid_points = (np.unique(invalid_points),)  # ((),) similiar to np.where
-
-        # Removes initial recall contamination (-remove_before_recall,+remove_after_recall)
-        baseline_arr[index][invalid_points] = invalid
-
-        # Remove any valid baselines that are too small (less than desired_bl_duration)
-        remove_small, too_small_locs = remove_too_small(baseline_arr=baseline_arr,
-                                                        trial=index,
-                                                        desired_duration=desired_bl_duration)
-        if remove_small:
-            baseline_arr[index][too_small_locs] = invalid
-
-    return baseline_arr
-
-
-def get_perfect_matches_in_lists(recalls, baseline_arr, trials, recall_eeg_start=1500, recall_eeg_end=500):
-    """Returns possible "perfect" recall-baseline match selections from other lists
-
-    Parameters
-    ----------
-    recalls: np.array, behavioral events of the recalls of interest
-    baseline_arr: np.array, array of ones and zeros for the baseline created using
-              get_valid_continuous_baseline_intervals_session
-    trials: np.array, array of ints for each valid trial
-    recall_eeg_start: int, default = 1500, time in ms of eeg that we would start at
-                    relative to recall onset, note the sign (e.g. -1500 vs 1500) does not matter
-    recall_eeg_end: int, default = 500, time in ms of eeg that we would stop at
-                    relative to recall onset
-    Returns
-    -------
-    perfectly_matched: "perfect" matches, rows are identical to recalls array, columns are valid trials (rows in
-                        baseline_arr)
-
-    """
-
-    # Check if user made it negative or positive
-    if np.sign(recall_eeg_start) == -1:
-        recall_eeg_start *= -1
-
-    recs_desired_starts = recalls['rectime'] - recall_eeg_start
-    recs_desired_stops = recalls['rectime'] + recall_eeg_end
-
-    # Store matches here
-    perfectly_matched = []
-
-    # Go through each recall, find perfect matches
-    for (start, stop) in zip(recs_desired_starts, recs_desired_stops):
-        # Match from -recall_eeg_start to + recall_eeg_end
-        has_perf_match_in_list = np.unique(np.where(baseline_arr[:, start:stop] == 1)[0])
-        perfectly_matched.append(has_perf_match_in_list)
-
-    return perfectly_matched
-
-
-def perfect_match_accumulator(ordered_recalls, baseline_array, trials, recall_eeg_start=1500, recall_eeg_end=500):
-    """Accumulates exact matches between recalls and baseline array, upon selection of a match invalidates it for other recalls
-
-    Parameters
-    ----------
-    ordered_recalls: np.array, behavioral events of the recalls of interest, single session of data only,
-                     SORTED FROM LEAST TO MOST EXACT MATCHES
-    baseline_array: np.array, array of ones and zeros for the baseline created using
-                    get_valid_continuous_baseline_intervals_session
-    trials: np.array, array of ints for each valid trial
-    recall_eeg_start: int, default = 1500, time in ms of eeg that we would start at
-                    relative to recall onset, note the sign (e.g. -1500 vs 1500) does not matter
-    recall_eeg_end: int, default = 500, time in ms of eeg that we would stop at
-                    relative to recall onset
-    Returns
-    -------
-    matches: dict; where keys are rows in ordered_recall array
-             and values are [(trial_num, relative_start, relative_stop)] corresponding
-             to the given recall
-    baseline_array: np.array, array of ones and zeros for the baseline created using
-                    get_valid_continuous_baseline_intervals_session. Selected matches are invalid
-    """
-    # Check if user made it negative or positive
-    if np.sign(recall_eeg_start) == -1:
-        recall_eeg_start *= -1
-
-    recs_desired_starts = ordered_recalls['rectime'] - recall_eeg_start
-    recs_desired_stops = ordered_recalls['rectime'] + recall_eeg_end
-    # Store matches here
-    matches = {}
-
-    # Go through each recall, find perfect matches, if multiple randomly select one
-    for index, (start, stop) in enumerate(zip(recs_desired_starts, recs_desired_stops)):
-        if index not in matches:
-            matches[index] = []
-
-        # Match from -recall_eeg_start to + recall_eeg_end
-        has_match_in_list = np.all(baseline_array[:, start:stop] == 1, 1)
-        list_matches = np.where(has_match_in_list == True)[0]
-
-        # If there aren't any perfect matches just continue
-        if len(list_matches) == 0:
-            print('Could not perfectly match recall index {}'.format(index))
-            continue
-
-        # If there are multiple perfect matches, randomly select one of them
-        random_selection = np.random.choice(list_matches)
-
-        if index in matches:
-            matches[index].append((trials[random_selection], start, stop))
-
-        # Void the selection so other recalls cannot think it is valid
-        baseline_array[random_selection, start:stop] = 0.
-
-    return matches, baseline_array
-
-
-def within_tolerance_match_accumulator(ordered_recalls, baseline_array, trials, matches, match_tolerance=2000,
-                                       recall_eeg_start=-1500, recall_eeg_end=500):
-    """Accumulates matches within a tolerance between recalls and baseline array, upon selection of a match invalidates it for other recalls
-
-    Parameters
-    ----------
-    ordered_recalls: np.array, behavioral events of the recalls of interest, single session of data only,
-                     SORTED FROM LEAST TO MOST EXACT MATCHES
-    baseline_array: np.array, array of ones and zeros for the baseline created using
-                    get_valid_continuous_baseline_intervals_session
-    trials: np.array, array of ints for each valid trial
-    matches: dict; where keys are rows in ordered_recall array
-             and values are [(trial_num, relative_start, relative_stop)] corresponding
-             to the given recall. Created using perfect_match_accumulator
-    match_tolerance: int, by default = 2000, time in ms that a deliberation may deviate from the
-                     retrieval of an item and still count as a match.
-    recall_eeg_start: int, default = 1500, time in ms of eeg that we would start at
-                    relative to recall onset, note the sign (e.g. -1500 vs 1500) does not matter
-    recall_eeg_end: int, default = 500, time in ms of eeg that we would stop at
-                    relative to recall onset
-    Returns
-    -------
-    matches: dict; where keys are rows in ordered_recall array
-             and values are [(trial_num, relative_start, relative_stop)] corresponding
-             to the given recall
-    baseline_array: np.array, array of ones and zeros for the baseline created using
-                    get_valid_continuous_baseline_intervals_session. Selected matches are invalid
-    """
-
-    if np.sign(recall_eeg_start) == -1:
-        recall_eeg_start *= -1
-
-    recs_desired_starts = ordered_recalls['rectime'] - recall_eeg_start
-    recs_desired_stops = ordered_recalls['rectime'] + recall_eeg_end
-    eeg_len = recall_eeg_end + recall_eeg_start
-
-    # Go through each recall, find perfect matches
-    for index, (start, stop) in enumerate(zip(recs_desired_starts, recs_desired_stops)):
-
-        # Don't do already matched recalls
-        if matches[index] != []:
-            continue
-
-        # Tolerance is around recall_eeg_start up until volcalization onset
-        before_start_within_tol = start - match_tolerance
-        after_start_within_tol = start + match_tolerance + recall_eeg_start
-
-        # -----> Sanity check: cannot be before or after recall period
-        if before_start_within_tol < 0:
-            before_start_within_tol = 0
-
-        if after_start_within_tol > baseline_array.shape[-1]:
-            after_start_within_tol = baseline_array.shape[-1]
-
-        # Go through from tolerance before recall up until tolerance after, try to find a match
-        found_match = False
-        while before_start_within_tol < after_start_within_tol:
-            if found_match:
-                break
-
-            start_slice = before_start_within_tol
-            end_slice = start_slice + eeg_len
-
-            has_match_in_list = np.all(baseline_array[:, start_slice:end_slice] == 1, 1)
-
-            # If there are any matches, randomly select one then void those locations
-            if np.any(has_match_in_list):
-                found_match = True
-                list_matches = np.where(has_match_in_list == True)[0]
-                random_selection = np.random.choice(list_matches)
-
-                if index in matches:
-                    matches[index].append((trials[random_selection], start_slice, end_slice))
-
-                # Void the selection so other recalls cannot think it is valid
-                baseline_array[random_selection, start_slice:end_slice] = 0.
-
-            before_start_within_tol += 1
-
-        if not found_match:
-            print('Could not match recall index {}'.format(index))
-
-    return matches, baseline_array
-
-
-def create_matched_recarray(matches, ordered_recalls, subject_instance, recall_eeg_start=-1250):
-    """Constructs a recarray of ordered_recalls and their matched deliberation points
-
-    Parameters
-    ----------
-    matches: dict; where keys are rows in ordered_recall array
-             and values are [(trial_num, relative_start, relative_stop)] corresponding
-             to the given recall. Created using perfect_match_accumulator, and
-             within_tolerance_match_accumulator
-    ordered_recalls: np.array, behavioral events of the recalls of interest, single session of data only,
-                     SORTED FROM LEAST TO MOST EXACT MATCHES
-    subject_instance: RetrievalEventCreator, instance of the subject after running method
-                      .initialize_recall_events
-    recall_eeg_start: int, default = 1500, time in ms of eeg that we would start at
-                    relative to recall onset, note the sign (e.g. -1500 vs 1500) does not matter
-    Returns
-    -------
-    behavioral_events: np.recarray, array of included recalls and matched deliberation periods
-    """
-    if np.sign(recall_eeg_start) == -1:
-        recall_eeg_start *= -1
-
-    rec_start, rec_end = return_recall_starts_stops(subject_instance.events)
-    sample_rate = subject_instance.sample_rate
-
-    # Non-sense is due to inconsistent fields
-    trial_field = 'trial' if 'trial' in ordered_recalls.dtype.names else 'list'
-    item_field = 'item_name' if 'item_name' in ordered_recalls.dtype.names else 'item'
-    item_number_field = 'item_num' if 'item_num' in ordered_recalls.dtype.names else 'itemno'
-
-    valid_recalls, valid_deliberation = [], []
-    # Use the matches dictionary to construct a recarray
-    for k, v in enumerate(matches):
-        if matches[v] == []:
-            continue
-
-        valid_recalls.append(ordered_recalls[k])
-
-        trial, rel_start, rel_stop = matches[v][0]
-        trial_rec_start_events = rec_start[rec_start[trial_field] == trial]
-
-        bl = deepcopy(ordered_recalls[k])
-        bl['type'] = 'REC_BASE'
-        bl[trial_field] = trial
-        bl[item_field] = 'N/A'
-        bl[item_number_field] = -999
-        bl['timebefore'] = -999
-        bl['timeafter'] = -999
-        bl['eegoffset'] = -999
-        # Since we'll want to use EEGReader for both at once the below adjustment should work
-        bl['rectime'] = rel_start - recall_eeg_start
-        bl['mstime'] = trial_rec_start_events['mstime'] + bl['rectime']
-        bl['eegoffset'] = trial_rec_start_events['eegoffset'] + (sample_rate * (bl['rectime'] / 1000.))
-        valid_deliberation.append(bl)
-
-    valid_recalls = np.array(valid_recalls).view(np.recarray)
-    valid_deliberation = np.array(valid_deliberation).view(np.recarray)
-
-    behavioral_events = np.concatenate((valid_deliberation, valid_recalls)).view(np.recarray)
-    behavioral_events.sort(order='match')
-
-    return behavioral_events
+    if old_array.dtype.fields is None:
+        raise ValueError("'old_array' must be a structured numpy array")
+    new_dtype = old_array.dtype.descr + list_of_tuples_field_type
+
+    # Try to add the new field to the array, should work if it's not already a field
+    try:
+        new_array = np.empty(old_array.shape, dtype=new_dtype).view(np.recarray)
+        for name in old_array.dtype.names:
+            new_array[name] = old_array[name]
+        return new_array
+    # If user accidentally tried to add a field already there, then return the old array
+    except ValueError as e:
+        print(sys.exc_info()[0])
+        error = FieldAlreadyExistsException(e)
+        return old_array
+
+# -------> UTILITY OBJECTS FOR INFORMING USER OF ERRORS
+class BaseException(Exception):
+    """Base Exception Object for handling"""
+
+    def __init__(self, *args):
+        self.args = args
+        self._set_error_message()
+
+    def _set_error_message(self):
+        self.message = self.args[0] if self.args else None
+
+
+class FieldAlreadyExistsException(BaseException):
+    """Utility for handling excepts of appending fields"""
+
+    def __init__(self, msg):
+        self.msg = msg
+        warning = '{}\nSo, the field is already in the array, returning inputted array'
+        super(FieldAlreadyExistsException, self).__init__('ValueError: {}'.format(msg))
+        print(warning.format(self.message))

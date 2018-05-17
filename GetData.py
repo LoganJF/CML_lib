@@ -3,50 +3,96 @@ A script used to extract various kinds of data from the CML datasets"""
 from glob import glob
 import numpy as np
 from ptsa.data.filters import MonopolarToBipolarMapper
+import os
+import sys
 
 try:
     from ptsa.data.readers import EEGReader, BaseEventReader
     from ptsa.data.readers.IndexReader import JsonIndexReader
 except ImportError:
     from ptsa.data.readers import JsonIndexReader, EEGReader, BaseEventReader
-import sys
 # sys.path.append('/home2/loganf/SecondYear/Functions/CML/Utility')
 from Utility.GetDataHelper import GetTalirach, GetEvents
 
 def get_subs(experiment):
-    """return the subjects of a given experiment, by default it will return json over matlab if both are available
+    """Return an array of subjects who participanted in the given experiment
+
+    PARAMETERS
     ------
     INPUTS:
     experiment: str, the kind of experiment to input, for RAM subjects use json reader field for json files and
                 matlab folders for matlab files
-                e.g. 'FR1' will get you json 'RAM_FR1' will get you matlab"""
 
+                ###Accepted arguments###
+                valid json experiments:
+                    [u'FR1', u'FR2', u'FR3', u'FR5', u'FR6', u'PAL1', u'PAL2',
+                     u'PAL3', u'PAL5', u'PS1', u'PS2', u'PS2.1', u'PS3', u'PS4_FR',
+                     u'PS4_catFR', u'PS5_catFR', u'TH1', u'TH3', u'THR', u'THR1',
+                     u'YC1', u'YC2', u'catFR1', u'catFR2', u'catFR3', u'catFR5', u'catFR6']
+
+                valid matlab experiments:
+                    ['RAM_CatFR1' 'RAM_CatFR2' 'RAM_CatFR3' 'RAM_DBS1' 'RAM_DBS2' 'RAM_FR1'
+                     'RAM_FR1-restored' 'RAM_FR2' 'RAM_FR3' 'RAM_FR3_pilot' 'RAM_FR4'
+                     'RAM_PAL1' 'RAM_PAL2' 'RAM_PAL3' 'RAM_PS' 'RAM_TH1' 'RAM_TH3' 'RAM_THR'
+                     'RAM_YC1' 'RAM_YC2' 'classFR' 'dBoy25_scalp' 'dBoy30' 'dboy' 'iCatFR'
+                     'localGlobalTones' 'ltpFR' 'motormap' 'pa3' 'pa3_stim' 'prob_sel2' 'pyFR'
+                     'pyFR_stim' 'pyFR_stim2' 'pyFR_theta' 'pymms' 'realTime_recog' 'tones2.1'
+                     'tones3.0' 'trackball' 'train']
+
+                valid scalp json experiments:
+                    [u'ltpFR2']
+    ------
+    OUTPUTS:
+    subs: np.array, an array of subjects in the experiment
+
+    NOTES ON RAM USUAGE:
+    ----------
+    by default 'FR1' will get you json version of events whereas 'RAM_FR1' will get you matlab version
+    """
     try:  # If they're using rhino
         jr = JsonIndexReader('/protocols/r1.json')
         json_experiments = jr.experiments()
+        jr_scalp = JsonIndexReader('/protocols/ltp.json')
+        json_experiments_scalp = jr_scalp.experiments()
         path = '/data/events/{}/*_events.mat'
+        matlab_experiments = np.unique([x.split('/')[3] for x in glob(path.format('*'))])
+
     except FileNotFoundError:  # if they're not using rhino
         jr = JsonIndexReader('/Volumes/rhino/protocols/r1.json')
         json_experiments = jr.experiments()
+        jr_scalp = JsonIndexReader('/Volumes/rhino/protocols/ltp.json')
+        json_experiments_scalp = jr_scalp.experiments()
         path = '/Volumes/rhino/data/events/{}/*_events.mat'
-
-    matlab_experiments = np.unique([x.split('/')[3] for x in glob(path.format('*'))])
+        matlab_experiments = np.unique([x.split('/')[3] for x in glob(path.format('*'))])
 
     if experiment in json_experiments:
-        subs = jr.subjects(experiment=experiment)
-        return np.array(subs)
+        subs = list(jr.subjects(experiment=experiment))
 
     elif experiment in matlab_experiments:
         path = path.format(experiment)
         subs = [filepath.split('/')[-1].split('_ev')[0] for filepath in glob(path)]
-        return np.array(subs)
-    else:
-        print('json experiments:\n', json_experiments)
-        print('\n')
-        print('matlab experiments:\n', matlab_experiments)
-        print('\n')
-        raise ValueError('Experiment not in matlab format or json format, sorry')
 
+    elif experiment in json_experiments_scalp:
+        subs = list(jr_scalp.subjects(experiment=experiment))
+
+    # Handling Just in case someone does ltpfr1 instead of ltpFR
+    elif experiment.lower() == 'ltpfr1':
+        path = path.format('ltpFR')
+        subs = [filepath.split('/')[-1].split('_ev')[0] for filepath in glob(path)]
+
+    else:
+        print('json experiments:\n')
+        print(json_experiments)
+        #print('\n') # Leave in
+        print('\nmatlab experiments:\n')
+        print(matlab_experiments)
+        #print('\n') # Leave in
+        print('\nscalp json experiments:\n')
+        print(json_experiments_scalp)
+        print('\n') # Leave in
+        raise ValueError('Experiment not found in matlab format or json format, sorry')
+
+    return np.array(subs)
 
 def get_sub_events(subject, experiment):
     """ Returns a single subjects event structures using BaseEventReader from ptsa
@@ -66,12 +112,16 @@ def get_json_events(subject, experiment, session='all', verbose=True):
     """Returns json event structure, np.recarray
     -----
     INPUTS:
-    subject: str, e.g. 'R1111M', 'LTP093', etc.
-    experiment: str, e.g. 'FR1', 'ltpFR2', etc.
-    session: int/str/ 'all'; sessions to return
-    verbose: bool, debugging purposes and useflow
+    subject: str, subject id e.g. 'R1111M', 'LTP093', etc.
+    experiment: str, experiment id e.g. 'FR1', 'ltpFR2', etc.
+    session: int or 'all', by default 'all', which sessions to return
+    verbose: bool, print out steps of code fordebugging purposes and useflow
+
+    -----
+    NOTES
+    By default usuage will return all events (session='all')
     """
-    # If scalp they're loading scalp data
+    #----------> If they're loading scalp data
     if experiment.lower() == 'ltpfr2':
         experiment = 'ltpFR2'  # Necessary due to inflexibility in capitilization in jsonreader!!
         jr = JsonIndexReader('/protocols/ltp.json')
@@ -90,7 +140,7 @@ def get_json_events(subject, experiment, session='all', verbose=True):
             events = BaseEventReader(filename=filepaths).read()
             return events
 
-    # If they're loading intracranial data
+    #----------> If they're loading intracranial data
     jr = JsonIndexReader('/protocols/r1.json')
     if experiment not in jr.experiments():  # Check it's there first
         print('Something went wrong, perhaps {} is not in {}'.format(subject, experiment))
@@ -130,7 +180,7 @@ def get_sub_tal(subject, experiment, exclude_bad=True, bipolar=True):
     INPUTS:
     :subject: str, the subject's ID number
     :experiment: str, the experiment to examine
-    :exclude_pad: boolean, whether to discard electrodes indicated as bad, True by default
+    :exclude_bad: boolean, whether to discard electrodes indicated as bad, True by default
     :bipolar: boolean, True to load bipolar talirach False to load monopolar
     -----
     OUTPUTS:

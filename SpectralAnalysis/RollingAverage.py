@@ -98,7 +98,10 @@ def sliding_mean_slow(ts, window=.5, desired_step=.01):
     """
     # E.g. if ts is -2, +2, this will be 350 points from -2 to 1.5
     # points = np.arange(ts['time'][0].data, int(ts['time'][-1].data)-window, desired_step)
-    points = np.arange(-2, 1.5, desired_step)
+    #points = np.arange(-2, 1.5, desired_step)
+    points = np.arange(ts['time'][0].data,
+                       ts['time'][-1].data-window,
+                       desired_step)
     # Go through each time point and find the nearest point, return the index
     data = []
     for time in points:
@@ -109,6 +112,8 @@ def sliding_mean_slow(ts, window=.5, desired_step=.01):
         data.append(ts[:, :, :, start:stop].mean('time'))
     ts = TimeSeriesX.concat(data, 'time')
     ts = ts.transpose('frequency', 'bipolar_pairs', 'events', 'time')
+    # Make the time axis represent the midpoint of the window.
+    points = points+(window/2.)
     ts['time'] = points
     return ts
 

@@ -5,28 +5,23 @@ from scipy.stats import zscore
 from ptsa.data.TimeSeriesX import TimeSeriesX
 
 
-def zscore(timeseries, dim, inplace=True):
-    """Computes a Zscore using scipy without converting timeseriesx into a np.array
-
-    ------
-    INPUTS:
-    timeseries: TimeSeriesX
-    dim: str, dim over which to zscore
-    inplace: bool, default False, whether or not to modify the timeseries in palce or return a copy
-
-    ------
-    OUTPUTS:
-    zscored TimeSeriesX
+def scipy_zscore(timeseries, dim='events'):
+    """Z-scores Data using scipy by default along events axis, does so for multiple sessions
+    Parameters
+    ----------
+    timeseries: TimeSeriesX,
+    dim: str, by default 'events',
+            dimension to z-score over
     """
+    # Convert dim to axis for use in scipy
+    dim_to_axis = dict(zip(timeseries.dims, xrange(len(timeseries.dims))))
+    axis = dim_to_axis[dim]
 
-    dims_to_axis = {dims: k for k, dims in enumerate(timeseries.dims)}
-    axis = dims_to_axis[dim]
-    raw = zscore(timeseries, axis)
+    # Go through each session and z-score relative to itself.
+    z_data = []
+    for sess in np.unique(timeseries['events'].data['session']):
+        curr_sess = timeseries.sel(events=timeseries['events'].data['session'] == sess)
+        curr_sess.data = zscore(curr_sess, axis)
+        z_data.append(curr_sess)
 
-    if inplace:
-        timeseries.data = raw
-        return timeseries
-
-    copy = TimeSeriesX.create(
-        data=raw, dims=timeseries.dims, coords=timeseries.coords, samplerate=timeseries.samplerate)
-    return copy
+    return TimeSeriesX.concat(z_data, 'events')
