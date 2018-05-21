@@ -2,9 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9e7e864d-e709-42f8-852f-20c2dab52567" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/Utility/NumpyFunctions.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/SpectralAnalysis/PostProcessingMentalChronometry.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/SpectralAnalysis/ZscoreByWholeSession.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/RetrievalCreationHelper.py" afterPath="$PROJECT_DIR$/RetrievalCreationHelper.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry.py" afterPath="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SpectralAnalysis/RollingAverage.py" afterPath="$PROJECT_DIR$/SpectralAnalysis/RollingAverage.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Stats/Zscore.py" afterPath="$PROJECT_DIR$/Stats/Zscore.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Utility/NumpyFunctions.py" afterPath="$PROJECT_DIR$/Utility/NumpyFunctions.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -22,8 +28,8 @@
       <file leaf-file-name="RetrievalCreationHelper.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/RetrievalCreationHelper.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="60">
-              <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+            <state relative-caret-position="446">
+              <caret line="1199" column="0" lean-forward="true" selection-start-line="1199" selection-start-column="0" selection-end-line="1199" selection-end-column="0" />
               <folding>
                 <element signature="e#1623#1648#0" expanded="true" />
               </folding>
@@ -31,55 +37,23 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="NumpyFunctions.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Utility/NumpyFunctions.py">
+      <file leaf-file-name="__init__.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="60">
-              <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Zscore.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Stats/Zscore.py">
+      <file leaf-file-name="ZscoreByWholeSession.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SpectralAnalysis/ZscoreByWholeSession.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="360">
-              <caret line="25" column="0" lean-forward="true" selection-start-line="25" selection-start-column="0" selection-end-line="25" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="RollingAverage.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/SpectralAnalysis/RollingAverage.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
-              <caret line="16" column="4" lean-forward="true" selection-start-line="16" selection-start-column="4" selection-end-line="16" selection-end-column="4" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="MentalChronometry.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/SpectralAnalysis/MentalChronometry.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="166">
-              <caret line="488" column="24" lean-forward="false" selection-start-line="488" selection-start-column="24" selection-end-line="488" selection-end-column="24" />
+            <state relative-caret-position="-3697">
+              <caret line="37" column="28" lean-forward="true" selection-start-line="37" selection-start-column="28" selection-end-line="37" selection-end-column="28" />
               <folding>
-                <element signature="e#235#244#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="GetData.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/GetData.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3765">
-              <caret line="299" column="28" lean-forward="false" selection-start-line="299" selection-start-column="28" selection-end-line="299" selection-end-column="28" />
-              <folding>
-                <element signature="e#101#122#0" expanded="true" />
+                <element signature="e#921#1005#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -104,7 +78,13 @@
       <find>trial_field</find>
       <find>remove_too_small</find>
       <find>.drop</find>
+      <find>continous</find>
+      <find>randomly_spaced_timepoints</find>
     </findStrings>
+    <replaceStrings>
+      <replace>continuous</replace>
+      <replace>randomly_spaced_time_points</replace>
+    </replaceStrings>
   </component>
   <component name="Git.Settings">
     <option name="PREVIOUS_COMMIT_AUTHORS">
@@ -125,7 +105,6 @@
         <option value="$PROJECT_DIR$/Utility/PandasFunctions.py" />
         <option value="$PROJECT_DIR$/Utility/TimeSeriesX.py" />
         <option value="$PROJECT_DIR$/Utility/TalairachHelper.py" />
-        <option value="$PROJECT_DIR$/__init__.py" />
         <option value="$PROJECT_DIR$/SpectralAnalysis/FastFiltering.py" />
         <option value="$PROJECT_DIR$/Stats/ZscoreWholeSession.py" />
         <option value="$PROJECT_DIR$/Stats/IndependentTTest.py" />
@@ -133,26 +112,29 @@
         <option value="$PROJECT_DIR$/BrainPlots/BrainActivityPlotter.py" />
         <option value="$PROJECT_DIR$/BrainPlots/BrainActivityWritter.py" />
         <option value="$PROJECT_DIR$/BrainPlots/ParcellateBrainIntoSpheres.py" />
-        <option value="$PROJECT_DIR$/scratch.py" />
         <option value="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry_Redo.py" />
         <option value="$PROJECT_DIR$/BrainPlots/__init__.py" />
-        <option value="$PROJECT_DIR$/Stats/Zscore.py" />
         <option value="$PROJECT_DIR$/RetrievalCreator/RetrievalEventCreator.py" />
         <option value="$PROJECT_DIR$/RetrievalCreator/DeliberationEventCreator.py" />
         <option value="$PROJECT_DIR$/RetrievalCreator/CreateMatches.py" />
-        <option value="$PROJECT_DIR$/SpectralAnalysis/RollingAverage.py" />
         <option value="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry_depreciated.py" />
         <option value="$PROJECT_DIR$/GetData.py" />
-        <option value="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry.py" />
+        <option value="$PROJECT_DIR$/SpectralAnalysis/PostProcessingMentalChronometry.py" />
         <option value="$PROJECT_DIR$/Utility/NumpyFunctions.py" />
+        <option value="$PROJECT_DIR$/__init__.py" />
+        <option value="$PROJECT_DIR$/SpectralAnalysis/RollingAverage.py" />
+        <option value="$PROJECT_DIR$/scratch.py" />
+        <option value="$PROJECT_DIR$/SpectralAnalysis/MentalChronometry.py" />
+        <option value="$PROJECT_DIR$/ZscoreByWholeSession.py" />
+        <option value="$PROJECT_DIR$/Stats/Zscore.py" />
         <option value="$PROJECT_DIR$/RetrievalCreationHelper.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="1123" />
-    <option name="y" value="118" />
-    <option name="width" value="1282" />
+    <option name="x" value="666" />
+    <option name="y" value="112" />
+    <option name="width" value="1790" />
     <option name="height" value="1257" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
@@ -209,7 +191,7 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="Utility" />
+              <option name="myItemId" value="SpectralAnalysis" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -223,7 +205,7 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="DemoNotebooks" />
+              <option name="myItemId" value="BrainPlots" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -238,6 +220,7 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/SpectralAnalysis" />
       <recent name="$PROJECT_DIR$/DemoNotebooks" />
       <recent name="$PROJECT_DIR$/BrainPlots/NotebookExamples" />
       <recent name="$PROJECT_DIR$/BrainPlots" />
@@ -442,7 +425,14 @@
       <option name="project" value="LOCAL" />
       <updated>1526570706538</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Moved append_fields function to a new script&#10;&#10;">
+      <created>1526571848102</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1526571848102</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TodoView">
@@ -455,16 +445,16 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="1123" y="118" width="1282" height="1257" extended-state="0" />
-    <editor active="true" />
+    <frame x="666" y="112" width="1790" height="1257" extended-state="0" />
+    <editor active="false" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24583663" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17524025" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32923618" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32923618" sideWeight="0.50594765" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32923618" sideWeight="0.49405235" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32923618" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.11237928" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -476,25 +466,6 @@
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
     </layout>
-    <layout-to-restore>
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32923618" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32923618" sideWeight="0.50594765" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32923618" sideWeight="0.49405235" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24662966" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-    </layout-to-restore>
   </component>
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
@@ -504,35 +475,27 @@
     <MESSAGE value="Mostly fixing things so they don't use the default parameters of the RAM functions. Also trying to upload a couple example notebooks of some functions I use." />
     <MESSAGE value="Adding init" />
     <MESSAGE value="Changed quite a bit actually.&#10;&#10;RetrievalCreationHelper:&#10;Changed slow while loop into a sliding sum using np.convolve, redid script to make it quite a lot cleaner. Added in a notebook to DemoNotebooks to demo the use cases of the main object and function wrapper of the object&#10;&#10;GetData.py:&#10;Added in json scalp functionality to get_subs&#10;&#10;RollingAverage.py:&#10;Fix bug that only allowed burke parameters to work with sliding mean slow, now it should flexibly work.&#10;&#10;" />
-    <option name="LAST_COMMIT_MESSAGE" value="Changed quite a bit actually.&#10;&#10;RetrievalCreationHelper:&#10;Changed slow while loop into a sliding sum using np.convolve, redid script to make it quite a lot cleaner. Added in a notebook to DemoNotebooks to demo the use cases of the main object and function wrapper of the object&#10;&#10;GetData.py:&#10;Added in json scalp functionality to get_subs&#10;&#10;RollingAverage.py:&#10;Fix bug that only allowed burke parameters to work with sliding mean slow, now it should flexibly work.&#10;&#10;" />
+    <MESSAGE value="Moved append_fields function to a new script&#10;&#10;" />
+    <option name="LAST_COMMIT_MESSAGE" value="Moved append_fields function to a new script&#10;&#10;" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager />
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SpectralAnalysis/PostProcessingMentalChronometry.py</url>
+          <line>1</line>
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="1" />
+    </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/GetData.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="135">
-          <caret line="11" column="10" lean-forward="false" selection-start-line="11" selection-start-column="10" selection-end-line="11" selection-end-column="10" />
-          <folding>
-            <element signature="e#101#122#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SpectralAnalysis/FastFiltering.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2190">
-          <caret line="149" column="55" lean-forward="false" selection-start-line="149" selection-start-column="55" selection-end-line="149" selection-end-column="55" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/Utility/BrainAtlas.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="525">
           <caret line="37" column="26" lean-forward="false" selection-start-line="37" selection-start-column="26" selection-end-line="37" selection-end-column="26" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -706,13 +669,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Stats/ZscoreWholeSession.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="121">
-          <caret line="466" column="54" lean-forward="true" selection-start-line="466" selection-start-column="54" selection-end-line="466" selection-end-column="54" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/BrainPlots/ParcellateBrainIntoSpheres.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
@@ -753,14 +709,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="525">
           <caret line="37" column="26" lean-forward="false" selection-start-line="37" selection-start-column="26" selection-end-line="37" selection-end-column="26" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/scratch.py" />
-    <entry file="file://$PROJECT_DIR$/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
@@ -785,14 +733,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="90">
           <caret line="6" column="106" lean-forward="true" selection-start-line="6" selection-start-column="106" selection-end-line="6" selection-end-column="106" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Stats/IndependentTTest.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="90">
-          <caret line="6" column="19" lean-forward="false" selection-start-line="6" selection-start-column="19" selection-end-line="6" selection-end-column="19" />
           <folding />
         </state>
       </provider>
@@ -855,44 +795,98 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SpectralAnalysis/RollingAverage.py">
+    <entry file="file://$PROJECT_DIR$/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="16" column="4" lean-forward="true" selection-start-line="16" selection-start-column="4" selection-end-line="16" selection-end-column="4" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Stats/Zscore.py">
+    <entry file="file://$PROJECT_DIR$/scratch.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="360">
-          <caret line="25" column="0" lean-forward="true" selection-start-line="25" selection-start-column="0" selection-end-line="25" selection-end-column="0" />
+        <state relative-caret-position="465">
+          <caret line="31" column="0" lean-forward="true" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Utility/NumpyFunctions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="293">
+          <caret line="43" column="32" lean-forward="false" selection-start-line="43" selection-start-column="32" selection-end-line="43" selection-end-column="32" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Stats/IndependentTTest.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="645">
+          <caret line="43" column="58" lean-forward="false" selection-start-line="43" selection-start-column="58" selection-end-line="43" selection-end-column="58" />
+          <folding>
+            <element signature="e#227#260#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SpectralAnalysis/RollingAverage.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1860">
+          <caret line="124" column="0" lean-forward="true" selection-start-line="124" selection-start-column="0" selection-end-line="124" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/SpectralAnalysis/MentalChronometry.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="166">
-          <caret line="488" column="24" lean-forward="false" selection-start-line="488" selection-start-column="24" selection-end-line="488" selection-end-column="24" />
+        <state relative-caret-position="-7177">
+          <caret line="15" column="32" lean-forward="false" selection-start-line="15" selection-start-column="32" selection-end-line="15" selection-end-column="32" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Stats/Zscore.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="12" column="28" lean-forward="true" selection-start-line="12" selection-start-column="28" selection-end-line="12" selection-end-column="28" />
           <folding>
-            <element signature="e#235#244#0" expanded="true" />
+            <element signature="e#173#203#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Utility/NumpyFunctions.py">
+    <entry file="file://$PROJECT_DIR$/SpectralAnalysis/PostProcessingMentalChronometry.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="60">
-          <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+        <state relative-caret-position="4200">
+          <caret line="280" column="0" lean-forward="true" selection-start-line="280" selection-start-column="0" selection-end-line="280" selection-end-column="0" />
+          <folding>
+            <element signature="e#18#32#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Stats/ZscoreWholeSession.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="106">
+          <caret line="466" column="54" lean-forward="true" selection-start-line="466" selection-start-column="54" selection-end-line="466" selection-end-column="54" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SpectralAnalysis/ZscoreByWholeSession.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-3697">
+          <caret line="37" column="28" lean-forward="true" selection-start-line="37" selection-start-column="28" selection-end-line="37" selection-end-column="28" />
+          <folding>
+            <element signature="e#921#1005#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/RetrievalCreationHelper.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="60">
-          <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+        <state relative-caret-position="446">
+          <caret line="1199" column="0" lean-forward="true" selection-start-line="1199" selection-start-column="0" selection-end-line="1199" selection-end-column="0" />
           <folding>
             <element signature="e#1623#1648#0" expanded="true" />
           </folding>

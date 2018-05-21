@@ -65,3 +65,20 @@ class FieldAlreadyExistsException(BaseException):
         warning = '{}\nSo, the field is already in the array, returning inputted array'
         super(FieldAlreadyExistsException, self).__init__('ValueError: {}'.format(msg))
         print(warning.format(self.message))
+
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+class DoneGoofed_InvalidSession(Error):
+    """Exception raised for errors in the input.
+
+    Attributes:
+        session -- input session of thes
+        possible_sessions -- valid sessions of the subject
+    """
+
+    def __init__(self, session, possible_sessions):
+        warning = 'DoneGoofed: Could not find session {} in possible sessions: {}'
+        self.warning = warning.format(session, possible_sessions)
+        print(self.warning)

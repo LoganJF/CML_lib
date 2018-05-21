@@ -228,6 +228,7 @@ class RetrievalEventCreator(object):
         self.event_path = None
         self.events = None
         self.sample_rate = None
+        self.montage = None
         self.possible_sessions = None
         self.trials = None
         self.included_recalls = None
@@ -274,11 +275,19 @@ class RetrievalEventCreator(object):
             sessions = self.jr_scalp.aggregate_values('sessions',
                                                       subject=self.subject,
                                                       experiment=self.experiment)
-        # If RAM
+        # If RAM:
         if self.experiment in self.jr.experiments():
+            # find out the montage for this session
+            montage = list(self.jr.aggregate_values('montage',
+                                                    subject=self.subject,
+                                                    experiment=self.experiment,
+                                                    session=self.session))[0]
+            self.montage = montage
+            # Find out all possible sessions with the montage
             sessions = self.jr.aggregate_values('sessions',
                                                 subject=self.subject,
-                                                experiment=self.experiment)
+                                                experiment=self.experiment,
+                                                montage=montage)
         # if pyFR
         if self.experiment == 'pyFR':
             evs = self.get_pyFR_events(self.subject)
@@ -289,12 +298,15 @@ class RetrievalEventCreator(object):
 
         # If the user chose a session not in the possible sessions then by default
         # We will defer to the first session of the possible sessions
+        """5/18/18: Changing default behavior to raise an error if session inputted is not valid"""
         if self.session not in self.possible_sessions:
-            if self.verbose:
-                print('Could not find session {} in {}'.format(self.session, self.possible_sessions))
-                print('Over-riding attribute session input {} with {}'.format(self.session,
-                                                                              self.possible_sessions[0]))
-            self.session = self.possible_sessions[0]
+            raise DoneGoofed_InvalidSession(self.session, self.possible_sessions)
+            #if self.verbose:
+                #print('Could not find session {} in possible sessions: {}'.format(self.session, self.possible_sessions))
+                #print('Over-riding attribute session input {} with {}'.format(self.session,
+                                                                              #self.possible_sessions[0]))
+
+            #self.session = self.possible_sessions[0]
 
         if self.verbose:
             print('Set Attribute possible_sessions')
@@ -1196,3 +1208,21 @@ class DeliberationEventCreator(RetrievalEventCreator):
         title = '{} {} Session {} Matched Retrieval Events'.format(self.subject, self.experiment, self.session)
         plt.title(title, fontsize=22)
         plt.show()
+
+
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+class DoneGoofed_InvalidSession(Error):
+    """Exception raised for errors in the input, here if they didn't enter a valid session.
+
+    Attributes:
+        session -- input session of thes
+        possible_sessions -- valid sessions of the subject
+    """
+
+    def __init__(self, session, possible_sessions):
+        warning = 'DoneGoofed: Could not find session {} in possible sessions: {}'
+        self.warning = warning.format(session, possible_sessions)
+        print(self.warning)
