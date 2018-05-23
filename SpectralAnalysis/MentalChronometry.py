@@ -14,7 +14,7 @@ TODO: Make sure all the imports still work given name changes in API...
 # General Imports
 import os
 from matplotlib import pyplot as plt
-
+import six # Handling unicode vs bytes string handling in py3 vs py2....
 # Add some dimension to your life, np=arr
 import numpy as np  # I say numpy like 'lumpy', no I don't mean num-pie
 
@@ -89,8 +89,8 @@ class Subject(object):
         self.eeg_end = eeg_end
         self.eeg_buffer = eeg_buffer
 
-        if (type(self.session) == unicode) | (type(self.session) == str):
-
+        #if (type(self.session) == unicode) | (type(self.session) == str):
+        if isinstance(self.session, six.string_types):
             if self.verbose:
                 print('Please use int for session Value, converting session to int')
                 self.session = int(self.session)

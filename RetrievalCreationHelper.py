@@ -34,6 +34,7 @@ from copy import deepcopy
 from collections import OrderedDict
 from IPython.display import display
 from matplotlib import pyplot as plt
+import six # Handling unicode vs bytes string handling in py3 vs py2.... God damn python3 why you so cruel
 import seaborn as sns; sns.set(color_codes=True)
 import warnings
 warnings.filterwarnings("ignore")
@@ -218,8 +219,8 @@ class RetrievalEventCreator(object):
         self.inclusion_time_after = inclusion_time_after
         self.verbose = verbose
         # Sanity check!
-        if (type(self.session) == unicode) | (type(self.session) == str):
-
+        #if (type(self.session) == unicode) | (type(self.session) == str):
+        if isinstance(self.session, six.string_types):
             if self.verbose:
                 print('Please use int for session Value, converting session to int')
                 self.session = int(self.session)
@@ -762,7 +763,8 @@ class DeliberationEventCreator(RetrievalEventCreator):
                                                        inclusion_time_after=rec_inclusion_after,
                                                        verbose=verbose)
 
-        if (type(self.session) == unicode) | (type(self.session) == str):
+        #if (type(self.session) == unicode) | (type(self.session) == str):
+        if isinstance(self.session, six.string_types):
             self.session = int(self.session)
 
         # Initialize the relevant RetrievalEventCreator attributes
