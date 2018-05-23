@@ -102,8 +102,7 @@ def create_matched_events(subject, experiment, session,
         period to last for. If None, the code assumes the desired duration is calculated
         using recall_eeg_start and recall_eeg_end
     :verbose:
-        bool, by default False, whether or not to print out the steps of the code along the way, additionally if set to
-        true then the code will output a report on the goodness of fit for the created events
+        bool, by default False, whether or not to print out the steps of the code along the way
     :goodness_fit_check:
         bool, by default False, whether or not to display information regarding the goodness of
         fit of the code
@@ -218,6 +217,12 @@ class RetrievalEventCreator(object):
         self.inclusion_time_before = inclusion_time_before
         self.inclusion_time_after = inclusion_time_after
         self.verbose = verbose
+        # Sanity check!
+        if (type(self.session) == unicode) | (type(self.session) == str):
+
+            if self.verbose:
+                print('Please use int for session Value, converting session to int')
+                self.session = int(self.session)
 
         # So here we need to set the time of the recall, which varies by experiment
         self.rectime = 45000 if self.experiment == 'pyFR' else 30000
@@ -232,6 +237,7 @@ class RetrievalEventCreator(object):
         self.possible_sessions = None
         self.trials = None
         self.included_recalls = None
+        self.mean_rec = None
         return
 
     # ----------> FUNCTION TO CONSTRUCT STUFF
@@ -240,6 +246,8 @@ class RetrievalEventCreator(object):
         self.set_possible_sessions()
         self.set_events()
         self.events = self.add_fields_timebefore_and_timeafter(self.events)
+        if self.verbose:
+            print('Added fields "timebefore" and "timeafter" to attribute events')
         self.set_samplerate_params()
         self.set_valid_trials()
 
@@ -299,6 +307,7 @@ class RetrievalEventCreator(object):
         # If the user chose a session not in the possible sessions then by default
         # We will defer to the first session of the possible sessions
         """5/18/18: Changing default behavior to raise an error if session inputted is not valid"""
+
         if self.session not in self.possible_sessions:
             raise DoneGoofed_InvalidSession(self.session, self.possible_sessions)
             #if self.verbose:
@@ -389,6 +398,11 @@ class RetrievalEventCreator(object):
         if self.verbose:
             print('Adding field "match" to attribute events')
 
+        if self.mean_rec is None:
+            self.mean_rec = np.mean(self.events[self.events['type']=='WORD']['recalled'])*100
+            if self.verbose:
+                print('Setting Attribute mean_rec')
+                print('Mean Recall in session: {}%'.format(self.mean_rec))
         return
 
     def set_valid_trials(self):
@@ -436,8 +450,13 @@ class RetrievalEventCreator(object):
             # Use recall's mstime and eegoffset to determine the sample rate
             # Seriously, use the recall event not an arbitary type event or errors
             recalls = self.events[self.events['type'] == 'REC_WORD']
-            diff_in_seconds = (recalls['mstime'][4] - recalls['mstime'][3]) / 1000.
-            diff_in_samples = recalls['eegoffset'][4] - recalls['eegoffset'][3]
+
+            if recalls.shape[0] < 2:
+                raise DoneGoofed_NoRecalls(recalls.shape[0])
+
+            diff_in_seconds = (recalls['mstime'][1] - recalls['mstime'][0]) / 1000.
+            diff_in_samples = recalls['eegoffset'][1] - recalls['eegoffset'][0]
+
             # Round is because we want 499.997 etc. to be 500
             self.sample_rate = np.round(diff_in_samples / diff_in_seconds)
 
@@ -694,18 +713,13 @@ class DeliberationEventCreator(RetrievalEventCreator):
            :remove_after_recall:
                int, time in ms to remove after a recall (or vocalization) from being
                a valid deliberation period
-           ####### TODO: UPDATE #######
+           ####### TODO: UPDATE TO INCLUDED FUNCTIONALITY #######
            :desired_duration:
                int, by default set as None and assumed to be the total eeg length,
                Not currently implemented besides default setting. Do not use until then
            ############################
            :verbose:
                bool, by default False, whether or not to print out steps along the way,
-
-
-               Not true anymore:#if True then the code will also generate a report of the goodness of fit of
-               Not true anymore:#the matching process
-
 
        EXAMPLE USAGE
        --------------
@@ -725,12 +739,21 @@ class DeliberationEventCreator(RetrievalEventCreator):
                                             recall_eeg_start = -1250, recall_eeg_end = 250,
                                             match_tolerance = 2000, verbose=True)
        scalp_events = scalp_sub.create_matched_recarray()
-       """
+
+
+       Notes
+       -------
+       Code will do a exact match in time first, afterwards will do a "tolerated" match. Any recalls that
+       are not matched are dropped. If there are multiple possibles matches (either exact or tolerated) for a
+       recall then the code will select the match that is closest in trial number to the recall.
+
+    """
     def __init__(self, subject, experiment, session,
                  rec_inclusion_before, rec_inclusion_after,
                  recall_eeg_start, recall_eeg_end, match_tolerance,
                  remove_before_recall, remove_after_recall,
                  desired_duration=None, verbose=False):
+
         # Inheritance (Sets all attributes of RetrievalEventCreator)
         super(DeliberationEventCreator, self).__init__(subject=subject,
                                                        experiment=experiment,
@@ -738,11 +761,17 @@ class DeliberationEventCreator(RetrievalEventCreator):
                                                        inclusion_time_before=rec_inclusion_before,
                                                        inclusion_time_after=rec_inclusion_after,
                                                        verbose=verbose)
+
+        if (type(self.session) == unicode) | (type(self.session) == str):
+            self.session = int(self.session)
+
         # Initialize the relevant RetrievalEventCreator attributes
         self.initialize_recall_events()
+
         # This seems silly to have four attributes refer to two things?
         self.rec_inclusion_before = rec_inclusion_before
         self.rec_inclusion_after = rec_inclusion_after
+
         # Intialize relevant passed arguments and relevant DeliberationEventCreator attributes
         # Just to handle everything consistently regardless of user input...
         if np.sign(recall_eeg_start) == -1:
@@ -987,7 +1016,7 @@ class DeliberationEventCreator(RetrievalEventCreator):
         # if np.sign(self.recall_eeg_start) == -1:
         # self.recall_eeg_start *= -1
 
-        if self.matched_events is None:
+        if self.matches is None:
             self.match_accumulator()
 
         rec_start = self.events[self.events['type'] == 'REC_START']
@@ -1223,6 +1252,21 @@ class DoneGoofed_InvalidSession(Error):
     """
 
     def __init__(self, session, possible_sessions):
-        warning = 'DoneGoofed: Could not find session {} in possible sessions: {}'
-        self.warning = warning.format(session, possible_sessions)
+        warning = 'DoneGoofed Session Error: Ah Shucks sorry to say but it looks like ya done goofed...'
+        warning2 = 'I could not find session {}. Have you considered using a valid session instead? Try: \n{}'
+        self.warning = warning2.format(session, possible_sessions)
+        print(warning)
+        print(self.warning)
+
+class DoneGoofed_NoRecalls(Error):
+    """Exception raised for errors in the input, here if they didn't enter a valid session.
+
+    Attributes:
+        session -- input session of thes
+        possible_sessions -- valid sessions of the subject
+    """
+
+    def __init__(self, recalls):
+        warning = 'DoneGoofed IndexError: Subject has {} valid recalls cannot index for sample rate setting'
+        self.warning = warning.format(recalls)
         print(self.warning)

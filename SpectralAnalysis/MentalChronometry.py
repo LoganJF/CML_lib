@@ -33,7 +33,8 @@ except:
 # Relative imports from toolbox
 #import sys
 #sys.path.append('/home2/loganf/SecondYear/CML_lib/')
-from RetrievalCreationHelper import create_matched_events #as create_retrieval_and_matched_deliberation
+from RetrievalCreationHelper import (create_matched_events,
+                                     DoneGoofed_InvalidSession)
 from SpectralAnalysis.RollingAverage import sliding_mean_fast
 from Utility.FrequencyCreator import logspace
 from SpectralAnalysis.FastFiltering import butter_highpass_filter
@@ -88,6 +89,12 @@ class Subject(object):
         self.eeg_end = eeg_end
         self.eeg_buffer = eeg_buffer
 
+        if (type(self.session) == unicode) | (type(self.session) == str):
+
+            if self.verbose:
+                print('Please use int for session Value, converting session to int')
+                self.session = int(self.session)
+
         # Initialize relevant parameters we'll set as None
         self.possible_sessions = None
         self.events = None
@@ -104,6 +111,7 @@ class Subject(object):
 
         # These parameters will be over-riden by whatever inputs user uses in
         # set_matched_retrieval_deliberation_events
+        self.mean_rec = None
         self.rec_inclusion_before = None
         self.rec_inclusion_after = None
         self.remove_before_recall = None
@@ -111,39 +119,57 @@ class Subject(object):
         self.match_tolerance = None
         self.bad_channels = None
 
+        # To sanity check
+        self.set_possible_sessions()
+
         return
 
     ############ Methods to set appropriate values on the instance ############
 
     # ------> Figure out how many sessions there are
-
     def set_possible_sessions(self):
-        """Sets an attribute possible_session that is an array of all possible sessions for the subject"""
-        # Get all possible sessions
+        """sets the values of all possible session values (array) to attribute possible_sessions
 
+        Sets
+        ------
+        Attributes self.possible_sessions
+        """
+
+        # If ltpFR2
+        if self.experiment in self.jr_scalp.experiments():
+            sessions = self.jr_scalp.aggregate_values('sessions',
+                                                      subject=self.subject,
+                                                      experiment=self.experiment)
+        # If RAM:
+        if self.experiment in self.jr.experiments():
+            # find out the montage for this session
+            montage = list(self.jr.aggregate_values('montage',
+                                                    subject=self.subject,
+                                                    experiment=self.experiment,
+                                                    session=self.session))[0]
+            self.montage = montage
+            # Find out all possible sessions with the montage
+            sessions = self.jr.aggregate_values('sessions',
+                                                subject=self.subject,
+                                                experiment=self.experiment,
+                                                montage=montage)
+        # if pyFR
         if self.experiment == 'pyFR':
-            event_path = '/data/events/pyFR/{}_events.mat'.format(self.subject)
-            base_e_reader = BaseEventReader(filename=event_path,
-                                            eliminate_events_with_no_eeg=True)
-            evs = base_e_reader.read()
+            evs = self.get_pyFR_events(self.subject)
             sessions = np.unique(evs['session'])
 
-        # ltpFR2
-        if self.experiment in self.jr_scalp.experiments():
-            sessions = list(self.jr_scalp.aggregate_values(
-                'sessions', subject=self.subject, experiment=self.experiment))
+        # Replaced np.array((map(int, (sessions)))) for py3 functionality
+        self.possible_sessions = np.array(list(map(int, (sessions))))
 
-        # RAM
-        if self.experiment in self.jr.experiments():
-            # Get all possible sessions
-            sessions = list(self.jr.aggregate_values(
-                'sessions', subject=self.subject, experiment=self.experiment))
-
-        # type(sessions) == set of strings; make them an array of intergers
-        self.possible_sessions = np.array(sorted(map(int, sessions)))
+        # If the user chose a session not in the possible sessions then by default
+        # We will defer to the first session of the possible sessions
+        """5/20/18: Changing default behavior to raise an error if session inputted is not valid"""
 
         if self.session not in self.possible_sessions:
-            self.session = self.possible_sessions[0]
+            raise DoneGoofed_InvalidSession(self.session, self.possible_sessions)
+
+        if self.verbose:
+            print('Set Attribute possible_sessions')
         return
 
     # ------> Set appropriate events
@@ -178,12 +204,19 @@ class Subject(object):
         if self.verbose:
             print('Setting all events....')
         self.events = BaseEventReader(filename=list(f)[0]).read()
+
+        if self.verbose:
+            mean_rec = np.mean(self.events[self.events['type']=='WORD']['recalled'])
+            print('Mean Recall in session: {}%'.format(mean_rec*100))
+            self.mean_rec = mean_rec*100
+
         return
 
     def set_matched_retrieval_deliberation_events(self, rec_min_free_before, rec_min_free_after,
                                                   remove_before_recall=2000,
                                                   remove_after_recall=1500,
-                                                  match_tol=2000):
+                                                  match_tol=2000,
+                                                  goodness_fit_check=True):
         """Sets matched recall/deliberation behavioral events to .matched_events
 
         Parameters
@@ -211,7 +244,7 @@ class Subject(object):
                                     recall_eeg_end=int(self.eeg_end * 1000),
                                     match_tolerance=match_tol,
                                     verbose=self.verbose,
-                                    goodness_fit_check=self.verbose)
+                                    goodness_fit_check=goodness_fit_check)
         # If verbose is True it prints out the steps used by RetrievalEventCreator object
         self.matched_events = evs.view(np.recarray)
 
@@ -330,18 +363,18 @@ class Subject(object):
         if self.verbose:
             print('Removing {} linenoise....'.format(line_noise))
 
-        cleaned_data = b_filter.filter()
+        bf_data = b_filter.filter()
 
         # ----> Apply high pass filter to remove slow drift from signal
 
-        data = butter_highpass_filter(data=data,
-                                      cutoff=.1,
-                                      fs=float(data['samplerate']),
-                                      order=4)
+        #cleaned_data = butter_highpass_filter(data=cleaned_data,
+                                              #cutoff=.1,
+                                              #fs=float(data['samplerate']),
+                                              #order=4)
         if self.verbose:
-            print('Removing slow drifting <.1Hz Signal....')
-            #print('Not removing frequency < .1Hz....')
-        return cleaned_data
+            #print('Removing slow drifting <.1Hz Signal....')
+            print('Not removing frequency < .1Hz....')
+        return bf_data
 
     @staticmethod
     def find_and_remove_zero_bipolarpairs_from_eeg(eeg):
@@ -514,7 +547,7 @@ class Subject(object):
                                           window=window,
                                           desired_step=step,
                                           dim='time')
-        #averaged_data['frequency'] = self.freqs
+
         return averaged_data
 
     def path_creator(self):

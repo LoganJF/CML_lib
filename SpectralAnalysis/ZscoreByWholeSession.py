@@ -54,6 +54,7 @@ def get_behavioral_events_zscoring(subject, experiment, session, desired_step_in
     """
     subject_instance = RetrievalEventCreator(subject=subject, experiment=experiment, session=session,
                                              inclusion_time_before=2000, inclusion_time_after=1500)
+    subject_instance.set_possible_sessions()
     subject_instance.initialize_recall_events()
     behavioral_events = subject_instance.events
 
