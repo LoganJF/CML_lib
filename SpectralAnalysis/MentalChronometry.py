@@ -297,7 +297,7 @@ class Subject(object):
         return
 
     # ------> Set subject's EEG
-    def set_eeg(self, events=None):
+    def set_eeg(self, events=None, remove_artifacts=True):
         """Sets bp eeg for subject, by default uses set_events, otherwise pass in events to override"""
 
         # Load eeg from start to end, include buffer for edge contamination
@@ -322,9 +322,9 @@ class Subject(object):
             print('Setting eeg for {}....'.format(default))
 
         self.eeg = eeg_reader.read()
-
-        # Remove line-noise, slow drift, and chs of all zeros
-        self.remove_artifacts(data=self.eeg)
+        if remove_artifacts:
+            # Remove line-noise, slow drift, and chs of all zeros
+            self.remove_artifacts(data=self.eeg)
 
         if self.bipolar:
             self.eeg = self.bipolar_filter(data=self.eeg, bipolar_pairs=self.bp)
@@ -350,7 +350,7 @@ class Subject(object):
 
         if self.verbose:
             print("Setting attribute bad_channels")
-        self.bad_channels = bad_channels
+        self.bad_channels = bad_channels.astype(bytes) # Make it bytes so it doesn't whine in py3
 
         self.update_channel_info_after_removal_bad_channels()
 
@@ -413,7 +413,8 @@ class Subject(object):
 
     def update_channel_info_after_removal_bad_channels(self):
         """A function that finds intersections between all channels and bad channels returning only good ones"""
-
+        if len(self.bad_channels) == 0:
+            return
         # Find good mp
         locs_good_mp = np.where(np.in1d(self.mp, np.intersect1d(self.mp, self.bad_channels))==False)
         valid_mp = self.mp[locs_good_mp].view(np.recarray)
@@ -438,12 +439,12 @@ class Subject(object):
         self.bp = valid_bps
 
         # Update the tal attribute to reflect the changes
-        logan_tal_0 = self.tal['channel_1']
+        logan_tal_0 = self.tal['channel_1'].astype(bytes) # Because python3 handling
         valid_bp_0 = self.bp['ch0']
         valid_bp_1 = self.bp['ch1']
         keep0 = np.where(np.in1d(logan_tal_0,np.intersect1d(logan_tal_0, valid_bp_0)))
         brain_atlas = self.tal[keep0]
-        logan_tal_1 = brain_atlas['channel_2']
+        logan_tal_1 = brain_atlas['channel_2'].astype(bytes) # Fucking python3 why?
         keep1 = np.where(np.in1d(logan_tal_1, np.intersect1d(logan_tal_1, valid_bp_1)))
         brain_atlas = brain_atlas[keep1]
         self.tal = brain_atlas
